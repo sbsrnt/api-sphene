@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { RemindersModule } from './reminders/reminders.module';
-import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AuthModule } from './auth/auth.module';
+import { RemindersModule } from './reminders/reminders.module';
 import { User } from './user/user.entity';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [

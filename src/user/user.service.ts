@@ -1,7 +1,8 @@
-import { UnprocessableEntityException, Injectable } from '@nestjs/common';
+import { Injectable,UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User, UserRegistration } from './user.entity';
 import { Repository } from 'typeorm';
+
+import { User, UserRegistration } from './user.entity';
 
 @Injectable()
 export class UserService {
