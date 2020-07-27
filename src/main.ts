@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
+import * as dotenv from 'dotenv';
 import * as rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
+
+dotenv.config();
 
 import { AppModule } from './app.module';
 
@@ -26,7 +29,6 @@ async function bootstrap() {
   });
 
   // app.use("/register", createAccountLimiter);
-
   await app.listen(4000);
   console.log(`Application is running on: ${await app.getUrl()}`);
 

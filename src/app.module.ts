@@ -11,8 +11,8 @@ import { UserModule } from './user/user.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'mongodb',
-      host: 'localhost:27017',
-      database: 'sphene',
+      host: process.env.DB_HOST,
+      database: process.env.DB_DATABASE,
       entities: [User, EmailVerification, ForgottenPassword],
       synchronize: true,
       keepConnectionAlive: true,

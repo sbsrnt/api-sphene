@@ -17,6 +17,7 @@ module.exports = {
     jest: true,
   },
   rules: {
+    '@typescript-eslint/ban-ts-comment': 0,
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
@@ -37,6 +38,11 @@ module.exports = {
           // Side effect imports.
           [
             "^\\u0000"
+          ],
+          // Config files
+          [
+            "^@nest/config",
+            "^@nest/typeorm",
           ],
           // Packages. `nest` related packages come first.
           [

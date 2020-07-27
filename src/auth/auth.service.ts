@@ -24,7 +24,8 @@ export class AuthService {
 
   async register(user: UserRegistration): Promise<{ access_token?: string }> {
     const payload = await this.userService.addUser(user);
-    await this.mailersService.createEmailToken(user.email);
+    const token = await this.mailersService.createEmailToken(user.email);
+    token && await this.mailersService.sendEmailVerification(user.email);
 
     return {
       access_token: this.jwtService.sign(payload),
