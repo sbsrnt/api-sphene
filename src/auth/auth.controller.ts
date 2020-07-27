@@ -1,4 +1,4 @@
-import { Body,Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Request, UnprocessableEntityException, UseGuards } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
@@ -19,6 +19,16 @@ export class AuthController {
       firstName
     };
     return this.authService.register(user)
+  }
+
+  @Get('verify/:token')
+  public async verifyEmail(@Param() params): Promise<UnprocessableEntityException | null> {
+    try {
+      await this.authService.verifyEmail(params.token);
+      return null;
+    } catch(error) {
+      throw new UnprocessableEntityException();
+    }
   }
 
   @UseGuards(LocalAuthGuard)

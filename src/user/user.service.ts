@@ -1,5 +1,6 @@
-import { Injectable,UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { omit } from 'lodash';
 import { Repository } from 'typeorm';
 
 import { User, UserRegistration } from './user.entity';
@@ -49,6 +50,24 @@ export class UserService {
     } catch(e) {
       throw new UnprocessableEntityException('Something went wrong. Try again later.')
     }
+  }
+
+  async updateUser(user): Promise<any> {
+    const [userFromDb] = await this.findOne(user.email);
+
+    if(!userFromDb) throw new NotFoundException('User not found.');
+
+    try {
+      const updatedUser = {
+        ...omit(userFromDb, 'id'),
+        ...omit(user, 'id')
+      };
+      await this.userRepository.update({ email: user.email }, updatedUser);
+      return true;
+    } catch(e) {
+      throw new UnprocessableEntityException('Something went wrong during User update.');
+    }
+
   }
 
   async findOne(email: string): Promise<any> {

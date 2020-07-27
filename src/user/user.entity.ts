@@ -21,12 +21,18 @@ export class User {
   @Column()
   firstName: string;
 
-  @Column()
-  resetPasswordToken?: string;
+  @Column({
+    default: false
+  })
+  verified: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({
+    default: new Date()
+  })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({
+    default: null
+  })
   updatedAt: Date;
 }

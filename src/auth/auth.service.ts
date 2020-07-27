@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
+import { MailersService } from '../mailers/mailers.service';
 import { User, UserRegistration } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 
@@ -8,6 +9,7 @@ import { UserService } from '../user/user.service';
 export class AuthService {
   constructor(
     private userService: UserService,
+    private mailersService: MailersService,
     private jwtService: JwtService
   ) {}
 
@@ -22,6 +24,8 @@ export class AuthService {
 
   async register(user: UserRegistration): Promise<{ access_token?: string }> {
     const payload = await this.userService.addUser(user);
+    await this.mailersService.createEmailToken(user.email);
+
     return {
       access_token: this.jwtService.sign(payload),
     };
@@ -32,5 +36,9 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  async verifyEmail(token: string): Promise<any> {
+    return this.mailersService.verifyEmail(token);
   }
 }
