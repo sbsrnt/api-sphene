@@ -1,62 +1,72 @@
-import { ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException, UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createTransport } from 'nodemailer';
 import { MongoRepository } from 'typeorm';
 
+import { NETWORK_RESPONSE } from '../errors';
 import { UserService } from '../user/user.service';
-import { EmailVerification } from './mailers.entity';
+import { EmailVerification, ForgottenPassword } from './mailers.entity';
+
+type repositories = MongoRepository<EmailVerification> | MongoRepository<ForgottenPassword>;
 
 @Injectable()
 export class MailersService {
   constructor(
     @InjectRepository(EmailVerification)
     private readonly emailVerificationRepository: MongoRepository<EmailVerification>,
+    @InjectRepository(ForgottenPassword)
+    private readonly forgottenPasswordRepository: MongoRepository<ForgottenPassword>,
     private userService: UserService,
   ) {}
 
   async createEmailToken(email: string): Promise<UnprocessableEntityException | true> {
-    const [user] = await this.userService.findOne(email);
-    if(!user) throw new UnprocessableEntityException('User with given email doesn\'t exist.');
+    await this.checkIfUserExists(email);
 
-    const [emailToken] = await this.findOne(email);
+    const params = { value: email, repository: this.emailVerificationRepository };
+    const [token] = await this.findOne(params);
 
-    if (emailToken && ((new Date().getTime() - emailToken.timestamp.getTime()) / 60000 < 15 )){
-      throw new UnprocessableEntityException();
+    if (token && ((new Date().getTime() - token.createdAt.getTime()) / 60000 < 15 )){
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
     } else {
-      await this.findOneAndUpdate(email);
-      return true;
+      const updatedToken = await this.findOneAndUpdate(params);
+
+      if (updatedToken) return true;
+      else throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.DEFAULT)
     }
   }
 
-  async verifyEmail(token: string): Promise<ForbiddenException | NotFoundException | boolean> {
-    const emailToken = await this.emailVerificationRepository.findOne({ emailToken: token });
+  async verifyEmail(t: string): Promise<ForbiddenException | NotFoundException | boolean> {
+    const token = await this.emailVerificationRepository.findOne({ token: t });
 
-    if (!emailToken) throw new ForbiddenException();
+    if (!token) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
 
-    const [user] = await this.userService.findOne(emailToken.email);
+    const [user] = await this.userService.findOne(token.email);
+    await this.checkIfUserExists(token.email);
 
-    if (!user) throw new NotFoundException('User not found.');
+    user.verified = true;
+    user.updatedAt = new Date();
+    const savedUser = await this.userService.updateUser(user);
 
-    if (user) {
-      user.verified = true;
-      user.updatedAt = new Date();
-      const savedUser = await this.userService.updateUser(user);
+    await this.emailVerificationRepository.deleteOne({ token });
 
-      await this.emailVerificationRepository.deleteOne({
-        emailToken: token
-      });
-
-      return !!savedUser;
-    }
+    return !!savedUser;
   }
 
   async sendEmailVerification(email: string): Promise<boolean> {
-    const [user] = await this.userService.findOne(email);
-    if (!user) throw new NotFoundException('User with given email not found');
+    await this.checkIfUserExists(email);
 
-    const [mailer] = await this.findOne(email);
-    if (!mailer?.emailToken)
-      throw new ForbiddenException('User not registered.');
+    const params = { value: email, repository: this.emailVerificationRepository };
+    const [mailer] = await this.findOne(params);
+
+    if (!mailer?.token) {
+      throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
+    }
+
     const transporter = createTransport({
       // @ts-ignore
       host: process.env.MAILER_HOST,
@@ -73,7 +83,7 @@ export class MailersService {
       subject: 'Verify Email',
       text: 'Verify Email',
       html: 'Hi! <br><br> Thanks for your registration<br><br>' +
-        '<a href=' + process.env.MAILER_URL + mailer.emailToken + '>Click here to activate your account</a>'
+        '<a href=' + process.env.MAILER_URL + '/auth/verify/' +  mailer.token + '>Click here to activate your account</a>'
     };
 
     return await new Promise<boolean>(async function(resolve, reject) {
@@ -89,28 +99,108 @@ export class MailersService {
     })
   }
 
-  async findOne(email: string): Promise<any> {
-    return this.emailVerificationRepository.find({
+  async createForgottenPasswordToken(email: string): Promise<ForgottenPassword> {
+    await this.checkIfUserExists(email);
+
+    const [token] = await this.findOne({value: email, repository: this.forgottenPasswordRepository});
+
+    if (token && ((new Date().getTime() - token.createdAt.getTime()) / 60000 < 15 )){
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.EMAIL.RECENTLY_SENT);
+    } else {
+       const updatedToken = await this.findOneAndUpdate({value: email, repository: this.forgottenPasswordRepository});
+       if(!updatedToken) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
+       return updatedToken;
+    }
+  }
+
+  async sendEmailForgotPassword(email: string): Promise<boolean> {
+    await this.checkIfUserExists(email);
+
+    const params = { value: email, repository: this.forgottenPasswordRepository };
+    const [forgottenPasswordModel] = await this.findOne(params);
+
+    if (!forgottenPasswordModel?.token) {
+      throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
+    }
+
+    const transporter = createTransport({
+      // @ts-ignore
+      host: process.env.MAILER_HOST,
+      port: process.env.MAILER_PORT,
+      auth: {
+        user: process.env.MAILER_USER,
+        pass: process.env.MAILER_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: '"Company" <' + process.env.MAILER_USER + '>',
+      to: email, // list of receivers (separated by ,)
+      subject: 'Forgotten Password',
+      text: 'Forgot Password',
+      html: 'Hi! <br><br> If you requested to reset your password<br><br>'+
+        '<a href='+ process.env.MAILER_URL + '/auth/reset-password/'+ forgottenPasswordModel.token + '>Click here</a>'
+    };
+
+    return await new Promise<boolean>(async function(resolve, reject) {
+      return transporter.sendMail(mailOptions, async (error, info) => {
+        try {
+          console.info('Message sent: %s', info?.messageId);
+          resolve(true);
+        } catch (e) {
+          console.error('Message sent: %s', e);
+          return reject(false);
+        }
+      });
+    })
+  }
+
+  async resetPassword({token, newPassword, confirmNewPassword}: { token: string, newPassword: string, confirmNewPassword: string }): Promise<any> {
+    if (!newPassword || !confirmNewPassword || newPassword !== confirmNewPassword ) throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.USER.PASSWORD_MISMATCH);
+
+    const existingToken = await this.forgottenPasswordRepository.findOne({ token });
+    if(!existingToken) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
+
+    const [user] = await this.userService.findOne(existingToken.email);
+    await this.checkIfUserExists(existingToken.email);
+
+    user.password = newPassword;
+    user.updatedAt = new Date();
+    const savedUser = await this.userService.updateUser(user);
+
+    await this.forgottenPasswordRepository.deleteOne({ token });
+
+    return !!savedUser;
+  }
+
+  async checkIfUserExists(email: string): Promise<NotFoundException | boolean> {
+    const [user] = await this.userService.findOne(email);
+    if(!user) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.USER.NOT_FOUND);
+    return true;
+  }
+
+  async findOne({value , repository, key = 'email' }: { value: string; repository: repositories; key?: string}): Promise<any> {
+    return repository.find({
       where: {
-        email: {
-          $eq: email
+        [key]: {
+          $eq: value
         }
       }
     });
   }
 
-  async findOneAndUpdate(email: string): Promise<any> {
-    const emailToken = (Math.floor(Math.random() * (9000000)) + 1000000).toString(); //Generate 7 digits number
-    return this.emailVerificationRepository.findOneAndUpdate(
-      { email },
+  async findOneAndUpdate({value , repository, key = 'email' }: { value: string; repository: repositories, key?: string }): Promise<any> {
+    const token = (Math.floor(Math.random() * (9000000)) + 1000000).toString(); //Generate 7 digits number
+    return repository.findOneAndUpdate(
+      { [key]: value },
       {
         $set: {
-          email,
-          emailToken,
-          timestamp: new Date()
+          [key]: value,
+          token,
+          createdAt: new Date()
         }
       },
-      {upsert: true}
+      { upsert: true }
     );
   }
 }

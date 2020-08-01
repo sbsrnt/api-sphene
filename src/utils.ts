@@ -9,3 +9,13 @@ export const findItem = ({id, items, errorLabel}: {id: string, items: any[], err
 
   return [item, itemIndex];
 }
+
+// export const findOne = async ({value , repository, key = 'email' }: { value: string; repository: repositories; key?: string}): Promise<any> => {
+//   return repository.find({
+//     where: {
+//       [key]: {
+//         $eq: value
+//       }
+//     }
+//   });
+// }

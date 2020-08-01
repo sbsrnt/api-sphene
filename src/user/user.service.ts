@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { omit } from 'lodash';
 import { Repository } from 'typeorm';
 
+import { NETWORK_RESPONSE } from '../errors';
 import { User, UserRegistration } from './user.entity';
 
 @Injectable()
@@ -14,11 +15,11 @@ export class UserService {
 
   async addUser({ email, password, firstName = null }: UserRegistration): Promise<any> {
     if(!email) {
-      throw new UnprocessableEntityException('Please provide e-mail.')
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.USER.MISSING_EMAIL)
     }
 
     if(!password) {
-      throw new UnprocessableEntityException('Please provide password.')
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.USER.MISSING_PASSWORD)
     }
 
     const [emailExists] = await this.userRepository.find({
@@ -31,7 +32,7 @@ export class UserService {
     })
 
     if(!!emailExists) {
-      throw new UnprocessableEntityException('Email already in use.')
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.USER.EMAIL_EXISTS)
     }
 
     try {
@@ -48,7 +49,7 @@ export class UserService {
 
       return payload;
     } catch(e) {
-      throw new UnprocessableEntityException('Something went wrong. Try again later.')
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.DEFAULT)
     }
   }
 
@@ -65,9 +66,8 @@ export class UserService {
       await this.userRepository.update({ email: user.email }, updatedUser);
       return true;
     } catch(e) {
-      throw new UnprocessableEntityException('Something went wrong during User update.');
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.USER.UPDATE_FAIL);
     }
-
   }
 
   async findOne(email: string): Promise<any> {

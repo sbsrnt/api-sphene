@@ -42,4 +42,13 @@ export class AuthService {
   async verifyEmail(token: string): Promise<any> {
     return this.mailersService.verifyEmail(token);
   }
+
+  async createForgottenPasswordToken(email: string): Promise<any> {
+    const token = await this.mailersService.createForgottenPasswordToken(email);
+    token && await this.mailersService.sendEmailForgotPassword(email);
+  }
+
+  async resetPassword({token, newPassword, confirmNewPassword}: { token: string, newPassword: string, confirmNewPassword: string }): Promise<any> {
+    await this.mailersService.resetPassword({token, newPassword, confirmNewPassword} )
+  }
 }

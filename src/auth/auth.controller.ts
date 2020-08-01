@@ -1,5 +1,16 @@
-import { Body, Controller, Get, Param, Post, Request, UnprocessableEntityException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Post,
+  Request,
+  UnprocessableEntityException,
+  UseGuards,
+} from '@nestjs/common';
 
+import { NETWORK_RESPONSE } from '../errors';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 
@@ -22,13 +33,24 @@ export class AuthController {
   }
 
   @Get('verify/:token')
-  public async verifyEmail(@Param() params): Promise<UnprocessableEntityException | null> {
-    try {
-      await this.authService.verifyEmail(params.token);
-      return null;
-    } catch(error) {
-      throw new UnprocessableEntityException();
-    }
+  public async verifyEmail(@Param('token') token): Promise<any> {
+      await this.authService.verifyEmail(token);
+  }
+
+  @Get('forgot-password')
+  public async sendEmailForgotPassword(
+    @Body('email') email: string
+  ): Promise<any> {
+    await this.authService.createForgottenPasswordToken(email);
+  }
+
+  @Post('reset-password/:token')
+  public async setNewPassword(
+    @Param('token') token: string,
+    @Body('newPassword') newPassword: string,
+    @Body('confirmNewPassword') confirmNewPassword: string,
+  ): Promise<any> {
+      await this.authService.resetPassword({token, newPassword, confirmNewPassword});
   }
 
   @UseGuards(LocalAuthGuard)

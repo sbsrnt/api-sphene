@@ -10,7 +10,7 @@ export class EmailVerification {
   email: string;
 
   @Column()
-  emailToken: string;
+  token: string;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -24,6 +24,9 @@ export class ForgottenPassword {
   @Index({ unique: true })
   @Column()
   email: string;
+
+  @Column()
+  token: string;
 
   @CreateDateColumn()
   createdAt: Date;
