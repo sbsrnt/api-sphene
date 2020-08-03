@@ -4,6 +4,7 @@ import { omit } from 'lodash';
 import { Repository } from 'typeorm';
 
 import { NETWORK_RESPONSE } from '../errors';
+import { hash } from '../utils';
 import { User, UserRegistration } from './user.entity';
 
 @Injectable()
@@ -38,7 +39,7 @@ export class UserService {
     try {
       const user = {
         email,
-        password,
+        password: await hash(password),
         firstName,
         createdAt: new Date(),
         updatedAt: null,
