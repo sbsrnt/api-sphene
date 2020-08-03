@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { createTransport } from 'nodemailer';
 import { MongoRepository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 
 import { NETWORK_RESPONSE } from '../errors';
 import { UserService } from '../user/user.service';
@@ -107,11 +108,11 @@ export class MailersService {
 
     if (token && ((new Date().getTime() - token.createdAt.getTime()) / 60000 < 15 )){
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.EMAIL.RECENTLY_SENT);
-    } else {
-       const updatedToken = await this.findOneAndUpdate({value: email, repository: this.forgottenPasswordRepository});
-       if(!updatedToken) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
-       return updatedToken;
     }
+
+   const updatedToken = await this.findOneAndUpdate({value: email, repository: this.forgottenPasswordRepository});
+   if(!updatedToken) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
+   return updatedToken;
   }
 
   async sendEmailForgotPassword(email: string): Promise<boolean> {
@@ -185,14 +186,16 @@ export class MailersService {
   }
 
   async findOneAndUpdate({value , repository, key = 'email' }: { value: string; repository: repositories, key?: string }): Promise<any> {
-    const token = (Math.floor(Math.random() * (9000000)) + 1000000).toString(); //Generate 7 digits number
+    const token = uuidv4();
+    const createdAt = new Date();
     return repository.findOneAndUpdate(
       { [key]: value },
       {
         $set: {
           [key]: value,
           token,
-          createdAt: new Date()
+          createdAt,
+          expiresAt: createdAt.setDate(createdAt.getDate() + 1)
         }
       },
       { upsert: true }
