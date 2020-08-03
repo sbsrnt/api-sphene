@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { MailersService } from '../mailers/mailers.service';
 import { User, UserRegistration } from '../user/user.entity';
 import { UserService } from '../user/user.service';
+import { checkIfUserExists } from '../utils';
 
 @Injectable()
 export class AuthService {
@@ -15,9 +16,9 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
-    const [user] = await this.userService.findOne(email);
+    const user = await checkIfUserExists(email, this.userService, true);
 
-    if (await bcrypt.compare(password, user?.password)) {
+    if (user && await bcrypt.compare(password, user.password)) {
       const { password, ...result } = user;
       return result;
     }

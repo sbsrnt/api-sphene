@@ -10,6 +10,7 @@ import { MongoRepository } from 'typeorm';
 
 import { NETWORK_RESPONSE } from '../errors';
 import { UserService } from '../user/user.service';
+import { checkIfUserExists } from '../utils';
 import { EmailVerification, ForgottenPassword } from './mailers.entity';
 
 type repositories = MongoRepository<EmailVerification> | MongoRepository<ForgottenPassword>;
@@ -25,7 +26,7 @@ export class MailersService {
   ) {}
 
   async createEmailToken(email: string): Promise<UnprocessableEntityException | true> {
-    await this.checkIfUserExists(email);
+    await checkIfUserExists(email, this.userService);
 
     const params = { value: email, repository: this.emailVerificationRepository };
     const [token] = await this.findOne(params);
@@ -46,7 +47,7 @@ export class MailersService {
     if (!token) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
 
     const [user] = await this.userService.findOne(token.email);
-    await this.checkIfUserExists(token.email);
+    await checkIfUserExists(token.email, this.userService);
 
     user.verified = true;
     user.updatedAt = new Date();
@@ -58,7 +59,7 @@ export class MailersService {
   }
 
   async sendEmailVerification(email: string): Promise<boolean> {
-    await this.checkIfUserExists(email);
+    await checkIfUserExists(email, this.userService);
 
     const params = { value: email, repository: this.emailVerificationRepository };
     const [mailer] = await this.findOne(params);
@@ -100,7 +101,7 @@ export class MailersService {
   }
 
   async createForgottenPasswordToken(email: string): Promise<ForgottenPassword> {
-    await this.checkIfUserExists(email);
+    await checkIfUserExists(email, this.userService);
 
     const [token] = await this.findOne({value: email, repository: this.forgottenPasswordRepository});
 
@@ -114,7 +115,7 @@ export class MailersService {
   }
 
   async sendEmailForgotPassword(email: string): Promise<boolean> {
-    await this.checkIfUserExists(email);
+    await checkIfUserExists(email, this.userService);
 
     const params = { value: email, repository: this.forgottenPasswordRepository };
     const [forgottenPasswordModel] = await this.findOne(params);
@@ -162,7 +163,7 @@ export class MailersService {
     if(!existingToken) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
 
     const [user] = await this.userService.findOne(existingToken.email);
-    await this.checkIfUserExists(existingToken.email);
+    await checkIfUserExists(existingToken.email, this.userService);;
 
     user.password = newPassword;
     user.updatedAt = new Date();
@@ -171,12 +172,6 @@ export class MailersService {
     await this.forgottenPasswordRepository.deleteOne({ token });
 
     return !!savedUser;
-  }
-
-  async checkIfUserExists(email: string): Promise<NotFoundException | boolean> {
-    const [user] = await this.userService.findOne(email);
-    if(!user) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.USER.NOT_FOUND);
-    return true;
   }
 
   async findOne({value , repository, key = 'email' }: { value: string; repository: repositories; key?: string}): Promise<any> {

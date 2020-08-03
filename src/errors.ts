@@ -11,6 +11,7 @@ export const NETWORK_RESPONSE = {
       },
       EMAIL: {
         RECENTLY_SENT: 'E-mail has been sent recently.',
+        INVALID_FORMAT: 'E-mail has invalid format.'
       },
       GENERAL: {
         DEFAULT: 'Something went wrong. Try again later.',

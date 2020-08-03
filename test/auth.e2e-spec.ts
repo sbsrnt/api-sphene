@@ -14,7 +14,6 @@ import { EmailVerification, ForgottenPassword } from '../src/mailers/mailers.ent
 import { AppModule } from '../src/app.module';
 import { PassportModule } from '@nestjs/passport';
 import { loginTestUser, registerTestUser } from './helpers';
-import { MailersModule } from '../src/mailers/mailers.module';
 import { AuthController } from '../src/auth/auth.controller';
 import * as jwtDecode from 'jwt-decode';
 
@@ -132,6 +131,20 @@ describe('AuthController (e2e)', () => {
           .expect(422)
           .then(({ body: { message }}) => expect(message).toBe(errorMsg))
       });
+
+      it(`throws 422 when user email is invalid`, () => {
+        const testUser = {
+          email: 'test @test.test',
+          password: null,
+          firstName: 'test',
+        }
+        const errorMsg = 'E-mail has invalid format.';
+
+        return registerTestUser(app, testUser)
+          .expect('Content-Type', /json/)
+          .expect(422)
+          .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+      })
     })
 
     describe('auth/login', () => {
@@ -166,9 +179,16 @@ describe('AuthController (e2e)', () => {
       })
 
       it('throws 401 upon wrong email', async () => {
-        const userRegistered = await registerTestUser(app);
+        const testUser = {
+          email: 'foo@test.test',
+          password: 'p',
+          firstName: 'test',
+        }
 
-        if(userRegistered) {
+        const userRegistered = await registerTestUser(app);
+        const secondUserRegistered = await registerTestUser(app, testUser);
+
+        if(userRegistered && secondUserRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -178,7 +198,7 @@ describe('AuthController (e2e)', () => {
             .set('Accept', 'application/json')
             .expect(401)
         }
-      })
+      }, 15000)
 
       it('throws 401 upon wrong password', async () => {
         const userRegistered = await registerTestUser(app);

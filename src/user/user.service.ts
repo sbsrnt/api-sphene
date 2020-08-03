@@ -4,7 +4,7 @@ import { omit } from 'lodash';
 import { Repository } from 'typeorm';
 
 import { NETWORK_RESPONSE } from '../errors';
-import { hash } from '../utils';
+import { hash, validateEmailFormat } from '../utils';
 import { User, UserRegistration } from './user.entity';
 
 @Injectable()
@@ -17,6 +17,10 @@ export class UserService {
   async addUser({ email, password, firstName = null }: UserRegistration): Promise<any> {
     if(!email) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.USER.MISSING_EMAIL)
+    }
+
+    if(!validateEmailFormat(email)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.EMAIL.INVALID_FORMAT)
     }
 
     if(!password) {
