@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { NETWORK_RESPONSE } from '../errors';
 import { UserService } from '../user/user.service';
-import { checkIfUserExists } from '../utils';
+import { checkIfUserExists, hash } from '../utils';
 import { EmailVerification, ForgottenPassword } from './mailers.entity';
 
 type repositories = MongoRepository<EmailVerification> | MongoRepository<ForgottenPassword>;
@@ -164,9 +164,9 @@ export class MailersService {
     if(!existingToken) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
 
     const [user] = await this.userService.findOne(existingToken.email);
-    await checkIfUserExists(existingToken.email, this.userService);;
+    await checkIfUserExists(existingToken.email, this.userService);
 
-    user.password = newPassword;
+    user.password = await hash(newPassword);
     user.updatedAt = new Date();
     const savedUser = await this.userService.updateUser(user);
 
