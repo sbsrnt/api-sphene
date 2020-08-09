@@ -37,7 +37,7 @@ export class AuthController {
       await this.authService.verifyEmail(token);
   }
 
-  @Get('forgot-password')
+  @Post('forgot-password')
   public async sendEmailForgotPassword(
     @Body('email') email: string
   ): Promise<any> {
