@@ -13,6 +13,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // app.use(helmet());
+  app.enableCors({
+    origin: 'http://localhost:3000'
+  });
 
   app.use(rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

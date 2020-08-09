@@ -2,7 +2,6 @@ import { NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 import { NETWORK_RESPONSE } from './errors';
-import { User } from './user/user.entity';
 import { UserService } from './user/user.service';
 
 export const findItem = ({id, items, errorLabel}: {id: string, items: any[], errorLabel: string}): [unknown, number] => {
