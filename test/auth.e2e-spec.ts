@@ -292,12 +292,12 @@ describe('AuthController (e2e)', () => {
 
         if (userRegistered) {
           return request(app.getHttpServer())
-            .get('/auth/forgot-password')
+            .post('/auth/forgot-password')
             .send({ email: 'test@test.test' })
             .set('Accept', 'application/json')
-            .expect(200)
+            .expect(201)
         }
-      })
+      }, 15000)
 
       it("throws 422 when token has been generated recently", async () => {
         const userRegistered = await registerTestUser(app);
@@ -305,12 +305,12 @@ describe('AuthController (e2e)', () => {
 
         if (userRegistered) {
           await request(app.getHttpServer())
-            .get('/auth/forgot-password')
+            .post('/auth/forgot-password')
             .send({ email: 'test@test.test' })
             .set('Accept', 'application/json')
 
           return request(app.getHttpServer())
-            .get('/auth/forgot-password')
+            .post('/auth/forgot-password')
             .send({ email: 'test@test.test' })
             .set('Accept', 'application/json')
             .expect(422)
@@ -322,7 +322,7 @@ describe('AuthController (e2e)', () => {
         const errorMsg = 'User with given email doesn\'t exist.';
 
         return request(app.getHttpServer())
-          .get('/auth/forgot-password')
+          .post('/auth/forgot-password')
           .set('Accept', 'application/json')
           .expect(404)
           .then(({ body: { message }}) => expect(message).toBe(errorMsg))
