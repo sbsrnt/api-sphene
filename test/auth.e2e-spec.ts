@@ -9,7 +9,7 @@ import { AuthService } from '../src/auth/auth.service';
 import { JwtStrategy } from '../src/auth/jwt.strategy';
 import { LocalStrategy } from '../src/auth/local.strategy';
 import { MailersService } from '../src/mailers/mailers.service';
-import { JwtModule, JwtService } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
 import { EmailVerification, ForgottenPassword } from '../src/mailers/mailers.entity';
 import { AppModule } from '../src/app.module';
 import { PassportModule } from '@nestjs/passport';
@@ -74,6 +74,8 @@ describe('AuthController (e2e)', () => {
   })
 
   describe('/POST', () => {
+    let resetPasswordToken = '';
+
     describe('auth/register', () => {
       it(`registers user with all keys`, () => {
         return registerTestUser(app)
@@ -260,42 +262,21 @@ describe('AuthController (e2e)', () => {
         }
       })
     })
-  })
-
-  describe('/GET', () => {
-    describe('verify/:token', () => {
-      it.skip(`verifies user with existing token`, async () => {
-        const result = {
-          id: '0',
-          email: 'test@test.test',
-          token: '123',
-          createdAt: new Date(),
-        }
-
-        // @ts-ignore
-        jest.spyOn(mailersService, 'verifyEmail').mockImplementation(() => result);
-        // @ts-ignore
-        expect(await authController.verifyEmail()).toBe(result);
-
-      })
-
-      it(`throws 403 on invalid token during email verification`, async () => {
-        await request(app.getHttpServer())
-          .get('/auth/verify/123')
-          .expect(403)
-      });
-    })
 
     describe('auth/forgot-password', () => {
       it("creates forgot password token", async () => {
         const userRegistered = await registerTestUser(app);
 
         if (userRegistered) {
+          process.env.BUILD_ENV = 'dev';
           return request(app.getHttpServer())
             .post('/auth/forgot-password')
             .send({ email: 'test@test.test' })
             .set('Accept', 'application/json')
             .expect(201)
+            .then(res => {
+              resetPasswordToken = res.body.token;
+            })
         }
       }, 15000)
 
@@ -327,6 +308,53 @@ describe('AuthController (e2e)', () => {
           .expect(404)
           .then(({ body: { message }}) => expect(message).toBe(errorMsg))
       })
+
+      it('throws 403 on non-existing token', async () => {
+        const userRegistered = await registerTestUser(app);
+        if(userRegistered) {
+          await request(app.getHttpServer())
+            .post(`/auth/reset-password/123`)
+            .send({ newPassword: 'newpassword', confirmNewPassword: 'newpassword' })
+            .set('Accept', 'application/json')
+            .expect(403)
+        }
+      })
+
+      it('resets password with good token', async () => {
+        const userRegistered = await registerTestUser(app);
+        if(userRegistered) {
+          await request(app.getHttpServer())
+            .post(`/auth/reset-password/${resetPasswordToken}`)
+            .send({ newPassword: 'newpassword', confirmNewPassword: 'newpassword' })
+            .set('Accept', 'application/json')
+            .expect(201)
+        }
+      })
+    })
+  })
+
+  describe('/GET', () => {
+    describe('verify/:token', () => {
+      it.skip(`verifies user with existing token`, async () => {
+        const result = {
+          id: '0',
+          email: 'test@test.test',
+          token: '123',
+          createdAt: new Date(),
+        }
+
+        // @ts-ignore
+        jest.spyOn(mailersService, 'verifyEmail').mockImplementation(() => result);
+        // @ts-ignore
+        expect(await authController.verifyEmail()).toBe(result);
+
+      })
+
+      it(`throws 403 on invalid token during email verification`, async () => {
+        await request(app.getHttpServer())
+          .get('/auth/verify/123')
+          .expect(403)
+      });
     })
   })
 });

@@ -35,7 +35,7 @@ export class AuthService {
     };
   }
 
-  async login(user: any): Promise<{ access_token: string }> {
+  async login(user: User): Promise<{ access_token: string }> {
     const payload = { email: user.email, sub: user.id};
     return {
       access_token: this.jwtService.sign(payload),
@@ -46,9 +46,14 @@ export class AuthService {
     return this.mailersService.verifyEmail(token);
   }
 
-  async createForgottenPasswordToken(email: string): Promise<any> {
-    const token = await this.mailersService.createForgottenPasswordToken(email);
-    token && await this.mailersService.sendEmailForgotPassword(email);
+  async createForgottenPasswordToken(email: string): Promise<{ success: boolean }> {
+    const tokenCreated = await this.mailersService.createForgottenPasswordToken(email);
+    const token = tokenCreated ? await this.mailersService.sendEmailForgotPassword(email) : null;
+
+    return {
+      success: !!token,
+      ...(process.env.BUILD_ENV === 'dev' && { token }),
+    }
   }
 
   async resetPassword({token, newPassword, confirmNewPassword}: { token: string, newPassword: string, confirmNewPassword: string }): Promise<any> {

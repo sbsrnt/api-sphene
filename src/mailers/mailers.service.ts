@@ -147,10 +147,13 @@ export class MailersService {
     return await new Promise<boolean>(async function(resolve, reject) {
       return transporter.sendMail(mailOptions, async (error, info) => {
         try {
-          console.info('Message sent: %s', info?.messageId);
+          // console.info('Message sent: %s', info?.messageId);
+          if(process.env.BUILD_ENV === 'dev'){
+            return resolve(forgottenPasswordModel.token);
+          }
           resolve(true);
         } catch (e) {
-          console.error('Message sent: %s', e);
+          // console.error('Message sent: %s', e);
           return reject(false);
         }
       });

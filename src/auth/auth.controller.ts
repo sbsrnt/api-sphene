@@ -1,16 +1,13 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   Get,
   Param,
   Post,
   Request,
-  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 
-import { NETWORK_RESPONSE } from '../errors';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 
@@ -41,7 +38,7 @@ export class AuthController {
   public async sendEmailForgotPassword(
     @Body('email') email: string
   ): Promise<any> {
-    await this.authService.createForgottenPasswordToken(email);
+    return await this.authService.createForgottenPasswordToken(email);
   }
 
   @Post('reset-password/:token')
