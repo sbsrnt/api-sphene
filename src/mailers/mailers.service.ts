@@ -37,14 +37,13 @@ export class MailersService {
     } else {
       const updatedToken = await this.findOneAndUpdate(params);
 
-      if (updatedToken) return true;
-      else throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.DEFAULT)
+      if (updatedToken) return updatedToken;
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.DEFAULT)
     }
   }
 
   async verifyEmail(t: string): Promise<ForbiddenException | NotFoundException | boolean> {
     const token = await this.emailVerificationRepository.findOne({ token: t });
-
     if (!token) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
 
     const [user] = await this.userService.findOne(token.email);
@@ -85,7 +84,7 @@ export class MailersService {
       subject: 'Verify Email',
       text: 'Verify Email',
       html: 'Hi! <br><br> Thanks for your registration<br><br>' +
-        '<a href=' + process.env.MAILER_URL + '/auth/verify/' +  mailer.token + '>Click here to activate your account</a>'
+        '<a href=' + process.env.MAILER_URL + '/auth/verify/' +  mailer.token + '>Click here to verify your account</a>'
     };
 
     return await new Promise<boolean>(async function(resolve, reject) {
@@ -95,7 +94,7 @@ export class MailersService {
           resolve(true);
         } catch (e) {
           // console.error('Message sent: %s', e);
-          return reject(false);
+          reject(false);
         }
       });
     })
@@ -148,13 +147,10 @@ export class MailersService {
       return transporter.sendMail(mailOptions, async (error, info) => {
         try {
           // console.info('Message sent: %s', info?.messageId);
-          if(process.env.BUILD_ENV === 'dev'){
-            return resolve(forgottenPasswordModel.token);
-          }
           resolve(true);
         } catch (e) {
           // console.error('Message sent: %s', e);
-          return reject(false);
+          reject(false);
         }
       });
     })
@@ -189,9 +185,9 @@ export class MailersService {
   }
 
   async findOneAndUpdate({value , repository, key = 'email' }: { value: string; repository: repositories, key?: string }): Promise<any> {
-    const token = uuidv4();
-    const createdAt = new Date();
-    return repository.findOneAndUpdate(
+    const token = await uuidv4();
+    const createdAt = await new Date();
+    await repository.findOneAndUpdate(
       { [key]: value },
       {
         $set: {
@@ -203,5 +199,7 @@ export class MailersService {
       },
       { upsert: true }
     );
+
+    return process.env.BUILD_ENV === 'dev' ? token : true;
   }
 }

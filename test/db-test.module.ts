@@ -1,5 +1,4 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
-// @ts-ignore
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 export const mongod = new MongoMemoryServer();

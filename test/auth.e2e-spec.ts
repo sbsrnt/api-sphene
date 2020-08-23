@@ -1,27 +1,27 @@
-import * as request from 'supertest';
+import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from '../src/user/user.service';
 import { INestApplication } from '@nestjs/common';
-import DbModule, { mongod } from './db-test.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+
+import * as request from 'supertest';
+import * as jwtDecode from 'jwt-decode';
+
+import DbModule, { mongod } from './db-test.module';
+import { loginTestUser, registerTestUser } from './helpers';
+import { AppModule } from '../src/app.module';
 import { User } from '../src/user/user.entity';
+import { UserService } from '../src/user/user.service';
 import { AuthService } from '../src/auth/auth.service';
 import { JwtStrategy } from '../src/auth/jwt.strategy';
 import { LocalStrategy } from '../src/auth/local.strategy';
 import { MailersService } from '../src/mailers/mailers.service';
-import { JwtModule } from '@nestjs/jwt';
 import { EmailVerification, ForgottenPassword } from '../src/mailers/mailers.entity';
-import { AppModule } from '../src/app.module';
-import { PassportModule } from '@nestjs/passport';
-import { loginTestUser, registerTestUser } from './helpers';
-import { AuthController } from '../src/auth/auth.controller';
-import * as jwtDecode from 'jwt-decode';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let userService = UserService;
   let authService = AuthService;
-  let authController = AuthController;
   let mailersService = MailersService;
 
   beforeAll(async () => {
@@ -108,7 +108,7 @@ describe('AuthController (e2e)', () => {
         return registerTestUser(app, testUser)
           .expect('Content-Type', /json/)
           .expect(422)
-          .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+          .then(({ body: { message } }) => expect(message).toBe(errorMsg))
       });
 
       it(`throws 422 when user doesn't provide password`, () => {
@@ -122,7 +122,7 @@ describe('AuthController (e2e)', () => {
         return registerTestUser(app, testUser)
           .expect('Content-Type', /json/)
           .expect(422)
-          .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+          .then(({ body: { message } }) => expect(message).toBe(errorMsg))
       });
 
       it(`throws 422 when user email already is taken`, () => {
@@ -131,7 +131,7 @@ describe('AuthController (e2e)', () => {
         return registerTestUser(app)
           .expect('Content-Type', /json/)
           .expect(422)
-          .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+          .then(({ body: { message } }) => expect(message).toBe(errorMsg))
       });
 
       it(`throws 422 when user email is invalid`, () => {
@@ -145,7 +145,26 @@ describe('AuthController (e2e)', () => {
         return registerTestUser(app, testUser)
           .expect('Content-Type', /json/)
           .expect(422)
-          .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+          .then(({ body: { message } }) => expect(message).toBe(errorMsg))
+      })
+
+      it('registers user but is not verified by default', async () => {
+        const userRegistered = await registerTestUser(app);
+
+        if (userRegistered) {
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({
+              email: 'test@test.test',
+              password: 'pwd'
+            })
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect(response => {
+              const { access_token } = response.body;
+              expect(jwtDecode(access_token).verified).toBeFalsy();
+            })
+        }
       })
     })
 
@@ -156,7 +175,7 @@ describe('AuthController (e2e)', () => {
 
       it('logs user in (default)', async () => {
         const userRegistered = await registerTestUser(app);
-        if(userRegistered) {
+        if (userRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -190,7 +209,7 @@ describe('AuthController (e2e)', () => {
         const userRegistered = await registerTestUser(app);
         const secondUserRegistered = await registerTestUser(app, testUser);
 
-        if(userRegistered && secondUserRegistered) {
+        if (userRegistered && secondUserRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -200,12 +219,12 @@ describe('AuthController (e2e)', () => {
             .set('Accept', 'application/json')
             .expect(401)
         }
-      }, 15000)
+      })
 
       it('throws 401 upon wrong password', async () => {
         const userRegistered = await registerTestUser(app);
 
-        if(userRegistered) {
+        if (userRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -220,7 +239,7 @@ describe('AuthController (e2e)', () => {
       it('throws 422 with no email present', async () => {
         const userRegistered = await registerTestUser(app);
 
-        if(userRegistered) {
+        if (userRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -235,7 +254,7 @@ describe('AuthController (e2e)', () => {
       it('throws 422 with no password present', async () => {
         const userRegistered = await registerTestUser(app);
 
-        if(userRegistered) {
+        if (userRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -250,7 +269,7 @@ describe('AuthController (e2e)', () => {
       it('throws 422 with no email & password present', async () => {
         const userRegistered = await registerTestUser(app);
 
-        if(userRegistered) {
+        if (userRegistered) {
           return request(app.getHttpServer())
             .post('/auth/login')
             .send({
@@ -278,7 +297,7 @@ describe('AuthController (e2e)', () => {
               resetPasswordToken = res.body.token;
             })
         }
-      }, 15000)
+      })
 
       it("doesn't send token in response on other BUILD_ENV than dev", async () => {
         const userRegistered = await registerTestUser(app);
@@ -294,7 +313,7 @@ describe('AuthController (e2e)', () => {
               expect(res.body.token).toBeUndefined();
             })
         }
-      }, 15000)
+      })
 
       it("throws 422 when token has been generated recently", async () => {
         const userRegistered = await registerTestUser(app);
@@ -311,7 +330,7 @@ describe('AuthController (e2e)', () => {
             .send({ email: 'test@test.test' })
             .set('Accept', 'application/json')
             .expect(422)
-            .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+            .then(({ body: { message } }) => expect(message).toBe(errorMsg))
         }
       })
 
@@ -322,12 +341,12 @@ describe('AuthController (e2e)', () => {
           .post('/auth/forgot-password')
           .set('Accept', 'application/json')
           .expect(404)
-          .then(({ body: { message }}) => expect(message).toBe(errorMsg))
+          .then(({ body: { message } }) => expect(message).toBe(errorMsg))
       })
 
       it('throws 403 on non-existing token', async () => {
         const userRegistered = await registerTestUser(app);
-        if(userRegistered) {
+        if (userRegistered) {
           await request(app.getHttpServer())
             .post(`/auth/reset-password/123`)
             .send({ newPassword: 'newpassword', confirmNewPassword: 'newpassword' })
@@ -338,7 +357,7 @@ describe('AuthController (e2e)', () => {
 
       it('resets password with good token', async () => {
         const userRegistered = await registerTestUser(app);
-        if(userRegistered) {
+        if (userRegistered) {
           await request(app.getHttpServer())
             .post(`/auth/reset-password/${resetPasswordToken}`)
             .send({ newPassword: 'newpassword', confirmNewPassword: 'newpassword' })
@@ -351,19 +370,28 @@ describe('AuthController (e2e)', () => {
 
   describe('/GET', () => {
     describe('verify/:token', () => {
-      it.skip(`verifies user with existing token`, async () => {
-        const result = {
-          id: '0',
-          email: 'test@test.test',
-          token: '123',
-          createdAt: new Date(),
+      let emailVerificationToken = '';
+
+      it('throws 403 on non-existing token', async () => {
+        const userRegistered = await registerTestUser(app);
+        if (userRegistered) {
+          await request(app.getHttpServer())
+            .get(`/auth/verify-email/123`)
+            .set('Accept', 'application/json')
+            .expect(404)
         }
+      })
 
-        // @ts-ignore
-        jest.spyOn(mailersService, 'verifyEmail').mockImplementation(() => result);
-        // @ts-ignore
-        expect(await authController.verifyEmail()).toBe(result);
+      it('creates email verification token', async () => {
+        process.env.BUILD_ENV = 'dev';
+        await registerTestUser(app).then(res => {
+          emailVerificationToken = res.body.token
+        });
+      })
 
+      it("doesn't send token in response on other BUILD_ENV than dev", async () => {
+        process.env.BUILD_ENV = 'prod';
+        await registerTestUser(app).then(res => expect(res.body.token).toBeUndefined());
       })
 
       it(`throws 403 on invalid token during email verification`, async () => {
@@ -371,6 +399,44 @@ describe('AuthController (e2e)', () => {
           .get('/auth/verify/123')
           .expect(403)
       });
+    })
+
+    describe('verify', () => {
+      let emailVerificationToken = '';
+
+      it('verifies user', async () => {
+        process.env.BUILD_ENV = 'dev';
+        const testUser = {
+          email: 'test3@test.test',
+          password: 'pwd',
+          firstName: 'test',
+        }
+
+        const userRegistered = await registerTestUser(app, testUser).then(res => {
+          emailVerificationToken = res.body.token
+          return true;
+        });
+
+        if (userRegistered) {
+          await request(app.getHttpServer())
+            .get(`/auth/verify/${emailVerificationToken}`)
+            .set('Accept', 'application/json')
+            .expect(200)
+
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({
+              email: 'test2@test.test',
+              password: 'pwd'
+            })
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect(response => {
+              const { access_token } = response.body;
+              expect(jwtDecode(access_token).verified).toBeTruthy();
+            })
+        }
+      })
     })
   })
 });

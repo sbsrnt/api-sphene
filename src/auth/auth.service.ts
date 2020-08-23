@@ -28,17 +28,18 @@ export class AuthService {
   async register(user: UserRegistration): Promise<{ access_token?: string }> {
     const payload = await this.userService.addUser(user);
     const token = await this.mailersService.createEmailToken(user.email);
-    token && await this.mailersService.sendEmailVerification(user.email);
+    await this.mailersService.sendEmailVerification(user.email);
 
     return {
       access_token: this.jwtService.sign(payload),
+      ...(process.env.BUILD_ENV === 'dev' && { token }),
     };
   }
 
-  async login(user: User): Promise<{ access_token: string }> {
-    const payload = { email: user.email, sub: user.id};
+  async login(req: { email: string }): Promise<{ access_token: string }> {
+    const { password, id, ...user } = await checkIfUserExists(req.email, this.userService, true);
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(user),
     };
   }
 
@@ -47,8 +48,8 @@ export class AuthService {
   }
 
   async createForgottenPasswordToken(email: string): Promise<{ success: boolean }> {
-    const tokenCreated = await this.mailersService.createForgottenPasswordToken(email);
-    const token = tokenCreated ? await this.mailersService.sendEmailForgotPassword(email) : null;
+    const token = await this.mailersService.createForgottenPasswordToken(email);
+    await this.mailersService.sendEmailForgotPassword(email)
 
     return {
       success: !!token,
