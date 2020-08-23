@@ -43,18 +43,17 @@ export class MailersService {
   }
 
   async verifyEmail(t: string): Promise<ForbiddenException | NotFoundException | boolean> {
-    const token = await this.emailVerificationRepository.findOne({ token: t });
-    if (!token) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
+    const emailVerificationModel = await this.emailVerificationRepository.findOne({ token: t });
+    if (!emailVerificationModel) throw new ForbiddenException(NETWORK_RESPONSE.ERRORS.GENERAL.TOKEN_INVALID);
 
-    const [user] = await this.userService.findOne(token.email);
-    await checkIfUserExists(token.email, this.userService);
+    const [user] = await this.userService.findOne(emailVerificationModel.email);
+    await checkIfUserExists(emailVerificationModel.email, this.userService);
 
     user.verified = true;
     user.updatedAt = new Date();
     const savedUser = await this.userService.updateUser(user);
 
-    await this.emailVerificationRepository.deleteOne({ token });
-
+    await this.emailVerificationRepository.deleteOne({ token: emailVerificationModel.token });
     return !!savedUser;
   }
 
@@ -84,16 +83,16 @@ export class MailersService {
       subject: 'Verify Email',
       text: 'Verify Email',
       html: 'Hi! <br><br> Thanks for your registration<br><br>' +
-        '<a href=' + process.env.MAILER_URL + '/auth/verify/' +  mailer.token + '>Click here to verify your account</a>'
+        '<a href=' + process.env.MAILER_URL + '/verify/' +  mailer.token + '>Click here to verify your account</a>'
     };
 
     return await new Promise<boolean>(async function(resolve, reject) {
       await transporter.sendMail(mailerOptions, async (error, info) => {
         try {
-          // console.info('Message sent: %s', info?.messageId);
+          console.info('Message sent: %s', info?.messageId);
           resolve(true);
         } catch (e) {
-          // console.error('Message sent: %s', e);
+          console.error('Message sent: %s', e);
           reject(false);
         }
       });
@@ -140,7 +139,7 @@ export class MailersService {
       subject: 'Forgotten Password',
       text: 'Forgot Password',
       html: 'Hi! <br><br> If you requested to reset your password<br><br>'+
-        '<a href='+ process.env.MAILER_URL + '/auth/reset-password/'+ forgottenPasswordModel.token + '>Click here</a>'
+        '<a href='+ process.env.MAILER_URL + '/reset-password/'+ forgottenPasswordModel.token + '>Click here</a>'
     };
 
     return await new Promise<boolean>(async function(resolve, reject) {
