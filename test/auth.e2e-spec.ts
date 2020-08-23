@@ -280,6 +280,22 @@ describe('AuthController (e2e)', () => {
         }
       }, 15000)
 
+      it("doesn't send token in response on other BUILD_ENV than dev", async () => {
+        const userRegistered = await registerTestUser(app);
+
+        if (userRegistered) {
+          process.env.BUILD_ENV = 'prod';
+          return request(app.getHttpServer())
+            .post('/auth/forgot-password')
+            .send({ email: 'test@test.test' })
+            .set('Accept', 'application/json')
+            .expect(422)
+            .then(res => {
+              expect(res.body.token).toBeUndefined();
+            })
+        }
+      }, 15000)
+
       it("throws 422 when token has been generated recently", async () => {
         const userRegistered = await registerTestUser(app);
         const errorMsg = 'E-mail has been sent recently.';
