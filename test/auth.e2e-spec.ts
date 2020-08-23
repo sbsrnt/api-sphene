@@ -426,7 +426,7 @@ describe('AuthController (e2e)', () => {
           await request(app.getHttpServer())
             .post('/auth/login')
             .send({
-              email: 'test2@test.test',
+              email: 'test3@test.test',
               password: 'pwd'
             })
             .set('Accept', 'application/json')
@@ -435,6 +435,11 @@ describe('AuthController (e2e)', () => {
               const { access_token } = response.body;
               expect(jwtDecode(access_token).verified).toBeTruthy();
             })
+
+          await request(app.getHttpServer())
+            .get(`/auth/verify/${emailVerificationToken}`)
+            .set('Accept', 'application/json')
+            .expect(403)
         }
       })
     })

@@ -89,10 +89,10 @@ export class MailersService {
     return await new Promise<boolean>(async function(resolve, reject) {
       await transporter.sendMail(mailerOptions, async (error, info) => {
         try {
-          console.info('Message sent: %s', info?.messageId);
+          // console.info('Message sent: %s', info?.messageId);
           resolve(true);
         } catch (e) {
-          console.error('Message sent: %s', e);
+          // console.error('Message sent: %s', e);
           reject(false);
         }
       });
