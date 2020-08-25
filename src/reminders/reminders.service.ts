@@ -1,6 +1,6 @@
 import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { MongoRepository } from "typeorm";
+import { MongoRepository, ObjectID } from "typeorm";
 
 import { NETWORK_RESPONSE } from "../errors";
 import { User } from "../user/user.entity";
@@ -24,7 +24,7 @@ export class RemindersService {
     private userService: UserService,
   ) {}
 
-  async addReminder({ email }: User, { title, description, remindAt, occurrence, type }: ReminderReq): Promise<any> {
+  async addReminder({ email }: User, { title, remindAt, ...reminderReq }: ReminderReq): Promise<any> {
     const { id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
@@ -37,15 +37,13 @@ export class RemindersService {
 
     try {
       const reminder = {
+        ...reminderReq,
         title,
-        description,
         remindAt,
-        type,
-        occurrence,
-        userId
+        userId,
       }
 
-      await this.reminderRepository.save(reminder);
+      await this.reminderRepository.save(reminder)
       return reminder;
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.ADD_FAIL)
@@ -60,18 +58,40 @@ export class RemindersService {
   //   const [reminder] = await findItem({id, items: this.reminders, errorLabel: 'reminder'});
   //   return reminder;
   // }
-  //
-  // async updateReminder(reminder: ReminderReq & { id: ObjectID }): Promise<Reminder | ExceptionInformation> {
-  //   const [reminder, reminderIndex] = await findItem({id, items: this.reminders, errorLabel: 'reminder'});
-  //   this.reminders[reminderIndex] = {
-  //     ...reminder as Reminder,
-  //     ...(title && { title }),
-  //     ...(body && { body }),
-  //   };
-  //
-  //   return this.reminders[reminderIndex];
-  // }
-  //
+
+  async updateReminder({ email }: User, { id, title, remindAt, ...reminder }: ReminderReq & { id: ObjectID}): Promise<any> {
+    await checkIfUserExists(email, this.userService, true);
+
+    if(!title) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
+    }
+
+    if(!remindAt) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_REMIND_AT)
+    }
+
+    try {
+      const { value: updatedReminder } = await this.reminderRepository.findOneAndUpdate(
+        { id },
+        {
+          $set: {
+            ...reminder,
+            title,
+            remindAt,
+          }
+        },
+        {
+          upsert: true,
+          returnOriginal: false
+        }
+      );
+
+      return updatedReminder
+    } catch(e) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.DEFAULT);
+    }
+  }
+
   // async deleteReminder(id: string): Promise<Reminder[]> {
   //   return this.reminders.filter(reminder => reminder.id !== id);
   // }

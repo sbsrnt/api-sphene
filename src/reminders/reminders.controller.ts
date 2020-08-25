@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ObjectID } from "typeorm";
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthUser } from "../user/user.decorator";
@@ -40,25 +41,27 @@ export class RemindersController {
   //   return this.remindersService.getReminder(reminderId);
   // }
   //
-  // @Put(':id')
-  // updateReminder(
-  //   @Body('id') id: ObjectID,
-  //   @Body('title') title: string,
-  //   @Body('description') description: string,
-  //   @Body('type') type: ReminderType,
-  //   @Body('remindAt') remindAt: Date,
-  //   @Body('occurrence') occurrence: OccurrenceType,
-  // ) {
-  //   const reminder = {
-  //     id,
-  //     title,
-  //     description,
-  //     type,
-  //     remindAt,
-  //     occurrence
-  //   }
-  //   return this.remindersService.updateReminder({reminder});
-  // }
+  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  updateReminder(
+    @AuthUser() user: User,
+    @Body('id') id: ObjectID,
+    @Body('title') title: string,
+    @Body('description') description: string,
+    @Body('type') type: ReminderType,
+    @Body('remindAt') remindAt: Date,
+    @Body('occurrence') occurrence: OccurrenceType,
+  ) {
+    const reminder = {
+      id,
+      title,
+      description,
+      type,
+      remindAt,
+      occurrence
+    }
+    return this.remindersService.updateReminder(user, reminder);
+  }
 
   // @Delete(':id')
   // deleteReminder(@Param('id') reminderId: string) {
