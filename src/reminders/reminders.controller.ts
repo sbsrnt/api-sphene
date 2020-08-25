@@ -1,42 +1,67 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthUser } from "../user/user.decorator";
+import { User } from "../user/user.entity";
+import { OccurrenceType, ReminderType } from "./reminders.entity";
 import { RemindersService } from './reminders.service';
 
-@UseGuards(JwtAuthGuard)
 @Controller('reminders')
 export class RemindersController {
   constructor(private readonly remindersService: RemindersService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   addReminder(
+    @AuthUser() user: User,
     @Body('title') title: string,
-    @Body('body') body: string
+    @Body('description') description: string,
+    @Body('type') type: ReminderType,
+    @Body('remindAt') remindAt: Date,
+    @Body('occurrence') occurrence: OccurrenceType,
   ) {
-    return this.remindersService.addReminder(title, body);
+    const reminder = {
+      title,
+      description,
+      type,
+      remindAt,
+      occurrence
+    }
+    return this.remindersService.addReminder(user, reminder);
   }
 
-  @Get()
-  getAllReminders() {
-    return this.remindersService.getAllReminders();
-  }
+  // @Get()
+  // getAllReminders() {
+  //   return this.remindersService.getAllReminders();
+  // }
+  //
+  // @Get(':id')
+  // getReminder(@Param('id') reminderId: string) {
+  //   return this.remindersService.getReminder(reminderId);
+  // }
+  //
+  // @Put(':id')
+  // updateReminder(
+  //   @Body('id') id: ObjectID,
+  //   @Body('title') title: string,
+  //   @Body('description') description: string,
+  //   @Body('type') type: ReminderType,
+  //   @Body('remindAt') remindAt: Date,
+  //   @Body('occurrence') occurrence: OccurrenceType,
+  // ) {
+  //   const reminder = {
+  //     id,
+  //     title,
+  //     description,
+  //     type,
+  //     remindAt,
+  //     occurrence
+  //   }
+  //   return this.remindersService.updateReminder({reminder});
+  // }
 
-  @Get(':id')
-  getReminder(@Param('id') reminderId: string) {
-    return this.remindersService.getReminder(reminderId);
-  }
-
-  @Put(':id')
-  updateReminder(
-    @Param('id') reminderId: string,
-    @Body('title') title: string,
-    @Body('body') body: string
-  ) {
-    return this.remindersService.updateReminder(reminderId, title, body);
-  }
-
-  @Delete(':id')
-  deleteReminder(@Param('id') reminderId: string) {
-    return this.remindersService.deleteReminder(reminderId);
-  }
+  // @Delete(':id')
+  // deleteReminder(@Param('id') reminderId: string) {
+  //   // return this.remindersService.deleteReminder(reminderId);
+  // }
 }

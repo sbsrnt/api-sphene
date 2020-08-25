@@ -16,6 +16,11 @@ export const NETWORK_RESPONSE = {
       GENERAL: {
         DEFAULT: 'Something went wrong. Try again later.',
         TOKEN_INVALID: 'Token invalid.',
+      },
+      REMINDER: {
+        MISSING_TITLE: 'Title is required.',
+        MISSING_REMIND_AT: 'Remind At is required.',
+        ADD_FAIL: 'Couldn\'t add reminder.'
       }
     }
 }
