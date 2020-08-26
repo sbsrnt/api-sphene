@@ -8,20 +8,20 @@ import {
 } from "typeorm";
 
 export enum ReminderType {
-  PAYMENT = 'payment',
-  BIRTHDAY = 'birthday',
-  EVENT = 'event',
+  payment,
+  birthday,
+  event
 }
 
 export enum OccurrenceType {
-  DAILY = 0,
-  EVERY_OTHER_DAY = 1,
-  WEEKLY = 2,
-  BI_WEEKLY = 3,
-  MONTHLY = 4,
-  QUARTERLY = 5,
-  HALF_YEARLY = 6,
-  YEARLY = 8
+  daily,
+  every_other_day,
+  weekly,
+  bi_weekly,
+  monthly,
+  quarterly ,
+  half_yearly,
+  yearly
 }
 
 @Entity('reminders')
@@ -38,21 +38,21 @@ export class Reminder {
   @Column({
     default: undefined
   })
-  description: string;
+  description: string | null;
 
   @Column({
     type: 'enum',
     enum: ReminderType,
-    default: ReminderType.EVENT
+    default: ReminderType.event
   })
-  type: ReminderType
+  type: ReminderType | string;
 
   @Column({
     type: 'enum',
     enum: OccurrenceType,
-    default: OccurrenceType.YEARLY,
+    default: OccurrenceType.yearly,
   })
-  occurrence: OccurrenceType
+  occurrence: OccurrenceType | string | null;
 
   @CreateDateColumn()
   remindAt: Date;

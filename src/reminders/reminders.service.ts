@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException, UnprocessableEntityException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Types } from "mongoose";
 import { MongoRepository, ObjectID } from "typeorm";
 
 import { NETWORK_RESPONSE } from "../errors";

@@ -50,7 +50,7 @@ export class UserService {
       }
 
       const newUser = await this.userRepository.save(user);
-      const { password: pwd, id, ...payload } = newUser;
+      const { password: pwd, _id, ...payload } = newUser;
 
       return payload;
     } catch(e) {
@@ -65,8 +65,8 @@ export class UserService {
 
     try {
       const updatedUser = {
-        ...omit(userFromDb, 'id'),
-        ...omit(user, 'id')
+        ...omit(userFromDb, '_id'),
+        ...omit(user, '_id')
       };
       await this.userRepository.update({ email: user.email }, updatedUser);
       return true;

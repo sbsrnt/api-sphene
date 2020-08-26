@@ -1,17 +1,17 @@
 import { define } from 'typeorm-seeding';
+const ObjectId = require('mongodb').ObjectId;
+
 
 import { hash } from '../utils';
 import { User } from './user.entity';
 
-define<Promise<User>, Promise<any>>(User, async () => {
-  const email = 'test@test.test';
-  const password = 'password';
-  const firstName = null;
-
+define<Promise<User>, any>(User, async (_, email: string) => {
   const user = await new User();
-  user.email = await email;
-  user.password = await hash(password);
-  user.firstName = await firstName;
+  const password = 'password';
 
-  return await user;
+  user._id = ObjectId();
+  user.email = email;
+  user.password = await hash(password);
+
+  return user;
 })

@@ -9,7 +9,7 @@ export type UserRegistration = {
 @Entity('users')
 export class User {
   @ObjectIdColumn()
-  id: ObjectID;
+  _id: ObjectID;
 
   @Index({ unique: true })
   @Column()
