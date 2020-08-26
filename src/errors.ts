@@ -16,11 +16,17 @@ export const NETWORK_RESPONSE = {
       GENERAL: {
         DEFAULT: 'Something went wrong. Try again later.',
         TOKEN_INVALID: 'Token invalid.',
+        UNAUTHORIZED: 'Unauthorized.'
       },
       REMINDER: {
         MISSING_TITLE: 'Title is required.',
         MISSING_REMIND_AT: 'Remind At is required.',
-        ADD_FAIL: 'Couldn\'t add reminder.'
+        ADD_FAIL: 'Couldn\'t add reminder.',
+        UPDATE_FAIL: 'Couldn\'t update reminder.',
+        DELETE_FAIL: 'Couldn\'t delete reminder.',
+        GET_ALL_FAIL: "Couldn't find reminders. Try again later.",
+        NOT_FOUND: "Couldn't find reminder. Try again later.",
+        NOT_ALLOWED: "Not allowed."
       }
     }
 }

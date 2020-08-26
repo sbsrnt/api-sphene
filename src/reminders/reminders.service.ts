@@ -1,5 +1,6 @@
-import { Injectable, UnprocessableEntityException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException, UnprocessableEntityException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Types } from "mongoose";
 import { MongoRepository, ObjectID } from "typeorm";
 
 import { NETWORK_RESPONSE } from "../errors";
@@ -7,6 +8,7 @@ import { User } from "../user/user.entity";
 import { UserService } from "../user/user.service";
 import { checkIfUserExists } from "../utils";
 import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
+const ObjectId = require('mongodb').ObjectId;
 
 type ReminderReq = {
   title: string;
@@ -24,7 +26,7 @@ export class RemindersService {
     private userService: UserService,
   ) {}
 
-  async addReminder({ email }: User, { title, remindAt, ...reminderReq }: ReminderReq): Promise<any> {
+  async addReminder({ email }: User, { title, remindAt, ...reminderReq }: ReminderReq): Promise<ReminderReq | UnprocessableEntityException> {
     const { id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
@@ -54,13 +56,20 @@ export class RemindersService {
   //   return [...this.reminders];
   // }
   //
-  // async getReminder(id: string): Promise<Reminder | ExceptionInformation> {
-  //   const [reminder] = await findItem({id, items: this.reminders, errorLabel: 'reminder'});
-  //   return reminder;
-  // }
+  async getReminder({ email }: User, id: ObjectID): Promise<any> {
+    const { id: userId } = await checkIfUserExists(email, this.userService, true);
 
-  async updateReminder({ email }: User, { id, title, remindAt, ...reminder }: ReminderReq & { id: ObjectID}): Promise<any> {
-    await checkIfUserExists(email, this.userService, true);
+    const reminder = await this.reminderRepository.findOne(id);
+
+    if (!reminder) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.REMINDER.NOT_FOUND)
+
+    if (reminder.userId.toString() !== userId.toString()) throw new UnauthorizedException(NETWORK_RESPONSE.ERRORS.GENERAL.UNAUTHORIZED)
+
+    return reminder
+  }
+
+  async updateReminder({ email }: User, { id, title, remindAt, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
+    const { id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
@@ -72,7 +81,12 @@ export class RemindersService {
 
     try {
       const { value: updatedReminder } = await this.reminderRepository.findOneAndUpdate(
-        { id },
+        {
+          $and: [
+            { _id: ObjectId(id) },
+            { userId }
+          ]
+        },
         {
           $set: {
             ...reminder,
@@ -88,11 +102,24 @@ export class RemindersService {
 
       return updatedReminder
     } catch(e) {
-      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.GENERAL.DEFAULT);
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UPDATE_FAIL);
     }
   }
 
-  // async deleteReminder(id: string): Promise<Reminder[]> {
-  //   return this.reminders.filter(reminder => reminder.id !== id);
-  // }
+  async deleteReminder({ email }: User, id: ObjectID): Promise<any> {
+    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    try {
+      await this.reminderRepository.deleteOne({
+        $and: [
+          { _id: ObjectId(id) },
+          { userId }
+        ]
+      });
+
+      return await id
+    } catch(e) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_FAIL);
+    }
+  }
 }

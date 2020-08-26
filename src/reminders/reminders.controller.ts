@@ -35,12 +35,16 @@ export class RemindersController {
   // getAllReminders() {
   //   return this.remindersService.getAllReminders();
   // }
-  //
-  // @Get(':id')
-  // getReminder(@Param('id') reminderId: string) {
-  //   return this.remindersService.getReminder(reminderId);
-  // }
-  //
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  getReminder(
+    @AuthUser() user: User,
+    @Param('id') reminderId: ObjectID
+  ) {
+    return this.remindersService.getReminder(user, reminderId);
+  }
+
   @Put(':id')
   @UseGuards(JwtAuthGuard)
   updateReminder(
@@ -63,8 +67,11 @@ export class RemindersController {
     return this.remindersService.updateReminder(user, reminder);
   }
 
-  // @Delete(':id')
-  // deleteReminder(@Param('id') reminderId: string) {
-  //   // return this.remindersService.deleteReminder(reminderId);
-  // }
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  deleteReminder(
+    @AuthUser() user: User,
+    @Param('id') reminderId: ObjectID) {
+    return this.remindersService.deleteReminder(user, reminderId);
+  }
 }

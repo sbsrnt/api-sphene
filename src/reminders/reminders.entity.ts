@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, ObjectID, ObjectIdColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ObjectID,
+  ObjectIdColumn,
+  UpdateDateColumn
+} from "typeorm";
 
 export enum ReminderType {
   PAYMENT = 'payment',
@@ -20,7 +27,7 @@ export enum OccurrenceType {
 @Entity('reminders')
 export class Reminder {
   @ObjectIdColumn()
-  id: ObjectID;
+  _id: ObjectID;
 
   @Column()
   userId: string;
