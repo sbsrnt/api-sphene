@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { isNaN } from "lodash";
 
 import { NETWORK_RESPONSE } from './errors';
 import { UserService } from './user/user.service';
@@ -21,7 +22,8 @@ export const checkIfUserExists = async (email: string, userService: UserService,
 }
 
 export const hash = async (s: string): Promise<string> => {
-  const salt = await bcrypt.genSalt(15);
+  const saltRounds = process.env.BUILD_ENV === 'dev' ? 8 : 15;
+  const salt = await bcrypt.genSalt(saltRounds);
   return bcrypt.hash(s, salt);
 }
 
@@ -29,3 +31,6 @@ export const validateEmailFormat = (e: string): boolean => {
   const emailRegExp = /^\S+@\S+\.\S+$/;
   return emailRegExp.test(String(e).toLocaleLowerCase());
 };
+
+export const filterEnumKeys: any = e => Object.keys(e).filter(k => isNaN(Number(k)))
+export const filterNumberEnumKeys: any = e => Object.keys(e).filter(k => !isNaN(Number(k))).map(k => Number(k))

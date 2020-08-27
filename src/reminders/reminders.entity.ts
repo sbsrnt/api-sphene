@@ -40,26 +40,16 @@ export class Reminder {
   })
   description: string | null;
 
-  @Column({
-    type: 'enum',
-    enum: ReminderType,
-    default: ReminderType.event
-  })
+  @Column()
   type: ReminderType | string;
 
-  @Column({
-    type: 'enum',
-    enum: OccurrenceType,
-    default: OccurrenceType.yearly,
-  })
+  @Column()
   occurrence: OccurrenceType | string | null;
 
   @CreateDateColumn()
   remindAt: Date;
 
-  @CreateDateColumn({
-    default: new Date()
-  })
+  @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn({

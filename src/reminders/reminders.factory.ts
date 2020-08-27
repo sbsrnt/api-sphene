@@ -1,13 +1,12 @@
 import Faker from 'faker'
-import {isNaN, random} from 'lodash';
+import {random} from 'lodash';
 import { define } from 'typeorm-seeding';
 
+import { filterEnumKeys } from '../utils';
 import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
 
-const filterEnumKeys = e => Object.keys(e).filter(k => isNaN(Number(k)))
 const firstDayOfTheYear = new Date(new Date().getFullYear(), 0, 1);
 const lastDayOfTheYear = new Date(new Date().getFullYear(), 11, 31);
-
 
 define(Reminder,  (faker: typeof Faker, userId: string) => {
   const randomType = ReminderType[random(filterEnumKeys(ReminderType).length - 1)];

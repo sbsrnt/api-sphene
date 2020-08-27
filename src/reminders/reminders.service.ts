@@ -5,7 +5,7 @@ import { MongoRepository, ObjectID } from "typeorm";
 import { NETWORK_RESPONSE } from "../errors";
 import { User } from "../user/user.entity";
 import { UserService } from "../user/user.service";
-import { checkIfUserExists } from "../utils";
+import { checkIfUserExists, filterNumberEnumKeys } from "../utils";
 import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
 const ObjectId = require('mongodb').ObjectId;
 
@@ -25,8 +25,8 @@ export class RemindersService {
     private userService: UserService,
   ) {}
 
-  async addReminder({ email }: User, { title, remindAt, ...reminderReq }: ReminderReq): Promise<ReminderReq | UnprocessableEntityException> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+  async addReminder({ email }: User, { title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminderReq }: ReminderReq): Promise<ReminderReq | UnprocessableEntityException> {
+    const { id: uid } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
@@ -36,16 +36,28 @@ export class RemindersService {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_REMIND_AT)
     }
 
+    if(!filterNumberEnumKeys(ReminderType).includes(type)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_TYPE)
+    }
+
+    if(!filterNumberEnumKeys(OccurrenceType).includes(occurrence)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_OCCURRENCE)
+    }
+
     try {
+      const createdAt = new Date();
       const reminder = {
         ...reminderReq,
         title,
         remindAt,
-        userId,
+        type,
+        occurrence,
+        createdAt,
+        userId: uid,
       }
 
-      await this.reminderRepository.save(reminder)
-      return reminder;
+      const { userId, ...newReminder } = await this.reminderRepository.save(reminder)
+      return newReminder;
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.ADD_FAIL)
     }

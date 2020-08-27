@@ -26,7 +26,9 @@ export const NETWORK_RESPONSE = {
         DELETE_FAIL: 'Couldn\'t delete reminder.',
         GET_ALL_FAIL: "Couldn't find reminders. Try again later.",
         NOT_FOUND: "Couldn't find reminder. Try again later.",
-        NOT_ALLOWED: "Not allowed."
+        NOT_ALLOWED: "Not allowed.",
+        UNSUPPORTED_TYPE: "Type is not supported.",
+        UNSUPPORTED_OCCURRENCE: "Occurrence is not supported."
       }
     }
 }
