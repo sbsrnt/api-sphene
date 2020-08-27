@@ -45,14 +45,13 @@ export class RemindersService {
     }
 
     try {
-      const createdAt = new Date();
       const reminder = {
         ...reminderReq,
         title,
         remindAt,
         type,
         occurrence,
-        createdAt,
+        createdAt: new Date(),
         userId: uid,
       }
 
@@ -79,7 +78,7 @@ export class RemindersService {
     return reminder
   }
 
-  async updateReminder({ email }: User, { id, title, remindAt, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
+  async updateReminder({ email }: User, { id, title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
     const { id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
@@ -88,6 +87,14 @@ export class RemindersService {
 
     if(!remindAt) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_REMIND_AT)
+    }
+
+    if(!filterNumberEnumKeys(ReminderType).includes(type)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_TYPE)
+    }
+
+    if(!filterNumberEnumKeys(OccurrenceType).includes(occurrence)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_OCCURRENCE)
     }
 
     try {
@@ -103,6 +110,8 @@ export class RemindersService {
             ...reminder,
             title,
             remindAt,
+            type,
+            occurrence
           }
         },
         {
@@ -110,7 +119,6 @@ export class RemindersService {
           returnOriginal: false
         }
       );
-
       return updatedReminder
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UPDATE_FAIL);
