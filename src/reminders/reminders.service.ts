@@ -7,7 +7,7 @@ import { User } from "../user/user.entity";
 import { UserService } from "../user/user.service";
 import { checkIfUserExists, filterNumberEnumKeys } from "../utils";
 import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
-const ObjectId = require('mongodb').ObjectId;
+const ObjectId = require('mongodb').ObjectID;
 
 type ReminderReq = {
   title: string;
@@ -26,7 +26,7 @@ export class RemindersService {
   ) {}
 
   async addReminder({ email }: User, { title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminderReq }: ReminderReq): Promise<ReminderReq | UnprocessableEntityException> {
-    const { id: uid } = await checkIfUserExists(email, this.userService, true);
+    const { _id: uid } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
@@ -45,14 +45,13 @@ export class RemindersService {
     }
 
     try {
-      const createdAt = new Date();
       const reminder = {
         ...reminderReq,
         title,
         remindAt,
         type,
         occurrence,
-        createdAt,
+        createdAt: new Date(),
         userId: uid,
       }
 
@@ -63,14 +62,22 @@ export class RemindersService {
     }
   }
 
-  // async getAllReminders(): Promise<Reminder[]> {
-  //   return [...this.reminders];
-  // }
-  //
-  async getReminder({ email }: User, id: ObjectID): Promise<any> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+  async getAllReminders({ email }: User): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+    try {
+      return await this.reminderRepository.find({ userId });
+    } catch(e) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.GET_ALL_FAIL)
+    }
+  }
 
-    const reminder = await this.reminderRepository.findOne(id);
+  async getReminder({ email }: User, id: any): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    const hex = /[0-9A-Fa-f]{6}/g;
+    id = (hex.test(id))? ObjectId(id) : id;
+
+    const reminder = await this.reminderRepository.findOne({ _id: id});
 
     if (!reminder) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.REMINDER.NOT_FOUND)
 
@@ -79,8 +86,8 @@ export class RemindersService {
     return reminder
   }
 
-  async updateReminder({ email }: User, { id, title, remindAt, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+  async updateReminder({ email }: User, { id, title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
@@ -88,6 +95,14 @@ export class RemindersService {
 
     if(!remindAt) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_REMIND_AT)
+    }
+
+    if(!filterNumberEnumKeys(ReminderType).includes(type)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_TYPE)
+    }
+
+    if(!filterNumberEnumKeys(OccurrenceType).includes(occurrence)) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_OCCURRENCE)
     }
 
     try {
@@ -103,6 +118,8 @@ export class RemindersService {
             ...reminder,
             title,
             remindAt,
+            type,
+            occurrence
           }
         },
         {
@@ -110,27 +127,48 @@ export class RemindersService {
           returnOriginal: false
         }
       );
-
       return updatedReminder
     } catch(e) {
-      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UPDATE_FAIL);
+      throw new UnauthorizedException(NETWORK_RESPONSE.ERRORS.REMINDER.UPDATE_FAIL);
     }
   }
 
-  async deleteReminder({ email }: User, id: ObjectID): Promise<any> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+  async deleteReminder({ email }: User, id: any): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    const hex = /[0-9A-Fa-f]{6}/g;
+    id = (hex.test(id))? ObjectId(id) : id;
+
+    const reminder = await this.reminderRepository.findOne({_id: id});
+
+    if (!reminder) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.REMINDER.NOT_FOUND)
+
+    if (reminder.userId.toString() !== userId.toString()) throw new UnauthorizedException(NETWORK_RESPONSE.ERRORS.GENERAL.UNAUTHORIZED)
 
     try {
       await this.reminderRepository.deleteOne({
         $and: [
-          { _id: ObjectId(id) },
-          { userId }
+          { _id: ObjectId(id),
+            userId
+          }
         ]
       });
-
-      return await id
+      return { deletedReminderId: id }
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_FAIL);
+    }
+  }
+
+  async deleteAllReminders({ email }: User): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    try {
+      await this.reminderRepository.deleteMany({userId});
+      return {
+        success: true
+      }
+    } catch(e) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_ALL_FAIL)
     }
   }
 }

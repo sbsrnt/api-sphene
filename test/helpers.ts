@@ -13,6 +13,21 @@ export const registerTestUser = (app, user = testUser) => {
     .set('Accept', 'application/json')
 }
 
+export const deleteAllReminders = async (app, token, url) => {
+  await request(app.getHttpServer())
+    .delete(url)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200)
+
+  await request(app.getHttpServer())
+    .get(url)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200)
+    .then(({ body }) => {
+      expect(body.length).toEqual(0);
+    })
+}
+
 export const loginTestUser = async (app, auth: {token?: string} = {}, user = testUser) => {
   const userCreated = await registerTestUser(app, user);
 

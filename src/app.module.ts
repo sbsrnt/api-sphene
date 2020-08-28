@@ -13,8 +13,8 @@ import { UserModule } from './user/user.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'mongodb',
-      host: process.env.DB_HOST,
-      database: process.env.DB_DATABASE,
+      host: process.env.BUILD_ENV === 'dev' ? process.env.DEV_DB_HOST : process.env.PROD_DB_HOST,
+      database: process.env.BUILD_ENV === 'dev' ? process.env.DEV_DB_DATABASE : process.env.PROD_DB_DATABASE,
       entities: [User, EmailVerification, ForgottenPassword, Reminder],
       synchronize: true,
       keepConnectionAlive: true

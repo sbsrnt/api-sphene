@@ -23,6 +23,7 @@ export const NETWORK_RESPONSE = {
         MISSING_REMIND_AT: 'Remind At is required.',
         ADD_FAIL: 'Couldn\'t add reminder.',
         UPDATE_FAIL: 'Couldn\'t update reminder.',
+        DELETE_ALL_FAIL: 'Couldn\'t delete all reminders. Try again later.',
         DELETE_FAIL: 'Couldn\'t delete reminder.',
         GET_ALL_FAIL: "Couldn't find reminders. Try again later.",
         NOT_FOUND: "Couldn't find reminder. Try again later.",
