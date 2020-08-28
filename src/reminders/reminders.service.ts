@@ -62,9 +62,14 @@ export class RemindersService {
     }
   }
 
-  // async getAllReminders(): Promise<Reminder[]> {
-  //   return [...this.reminders];
-  // }
+  async getAllReminders({ email }: User): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+    try {
+      return await this.reminderRepository.find({ userId });
+    } catch(e) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.GET_ALL_FAIL)
+    }
+  }
 
   async getReminder({ email }: User, id: any): Promise<any> {
     const { _id: userId } = await checkIfUserExists(email, this.userService, true);
@@ -149,6 +154,19 @@ export class RemindersService {
       return { deletedReminderId: id }
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_FAIL);
+    }
+  }
+
+  async deleteAllReminders({ email }: User): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    try {
+      await this.reminderRepository.deleteMany({userId});
+      return {
+        success: true
+      }
+    } catch(e) {
+      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_ALL_FAIL)
     }
   }
 }

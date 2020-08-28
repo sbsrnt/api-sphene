@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards
+} from "@nestjs/common";
 import { ObjectID } from "typeorm";
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -31,10 +40,13 @@ export class RemindersController {
     return this.remindersService.addReminder(user, reminder);
   }
 
-  // @Get()
-  // getAllReminders() {
-  //   return this.remindersService.getAllReminders();
-  // }
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  getAllReminders(
+    @AuthUser() user: User,
+  ) {
+    return this.remindersService.getAllReminders(user);
+  }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
@@ -71,7 +83,16 @@ export class RemindersController {
   @UseGuards(JwtAuthGuard)
   deleteReminder(
     @AuthUser() user: User,
-    @Param('id') id: ObjectID) {
+    @Param('id') id: ObjectID
+  ) {
     return this.remindersService.deleteReminder(user, id);
+  }
+
+  @Delete()
+  @UseGuards(JwtAuthGuard)
+  deleteAllReminders(
+    @AuthUser() user: User
+  ) {
+    return this.remindersService.deleteAllReminders(user);
   }
 }

@@ -7,7 +7,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import * as request from 'supertest';
 
 import DbModule, { mongod } from "./db-test.module";
-import { registerTestUser } from "./helpers";
+import { deleteAllReminders, registerTestUser } from "./helpers";
 
 import { EmailVerification, ForgottenPassword } from "../src/mailers/mailers.entity";
 import { UserService } from "../src/user/user.service";
@@ -28,6 +28,7 @@ describe('RemindersController (e2e)', () => {
   let user2token = null;
   let reminderId = null;
   let urlWithReminderId = null;
+  const url = '/reminders';
 
   const commonReminderReq = {
     title: 'test title',
@@ -105,7 +106,7 @@ describe('RemindersController (e2e)', () => {
   });
 
   afterAll(async () => {
-    token = '';
+    await deleteAllReminders(app, token, url);
     await app.close();
     await mongod.stop();
   });
@@ -125,7 +126,6 @@ describe('RemindersController (e2e)', () => {
   })
 
   describe('/POST', () => {
-    const url = '/reminders';
     describe('throws 401 with invalid token', () => {
       it('without header', () =>
         request(app.getHttpServer())
@@ -992,62 +992,161 @@ describe('RemindersController (e2e)', () => {
           .expect(200)
       )
     })
+
+    describe('all user reminders', () => {
+      describe('throws 401 with invalid token', () => {
+        it('without header', () =>
+          request(app.getHttpServer())
+            .get(url)
+            .expect(401)
+        )
+
+        it('with header', () =>
+          request(app.getHttpServer())
+            .get(url)
+            .set('Authorization', 'Bearer 123')
+            .send({
+              ...commonReminderReq,
+              description: 'test desc',
+              type: 0,
+              occurrence: 4,
+            })
+            .expect(401)
+        )
+      })
+
+      describe('gets', () => {
+        it('zero reminders', async () => {
+          await deleteAllReminders(app, token, url);
+        })
+
+        it('one reminder', async () => {
+          await request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send(commonReminderReq)
+            .expect(201)
+            .then(({ body: reminder }) => {
+              reminderId = reminder._id;
+              urlWithReminderId = `/reminders/${reminder._id}`;
+            })
+
+          await request(app.getHttpServer())
+            .get(url)
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200)
+            .then(({ body }) => {
+              expect(body.length).toEqual(1);
+            })
+        })
+
+        it('few reminders', async () => {
+          await request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send(commonReminderReq)
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonExpectedReminderRes)
+            })
+
+          await request(app.getHttpServer())
+            .get(url)
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200)
+            .then(({ body }) => {
+              // 1 created in beforeAll(), 2 created above
+              expect(body.length).toEqual(2);
+            })
+        })
+      })
+
+    })
   })
 
   describe('/DELETE', () => {
-    describe('throws 401 with invalid token', () => {
-      it('without header', () =>
-        request(app.getHttpServer())
-          .delete(urlWithReminderId)
-          .expect(401)
-      )
+    describe('single reminder', () => {
+      describe('throws 401 with invalid token', () => {
+        it('without header', () =>
+          request(app.getHttpServer())
+            .delete(urlWithReminderId)
+            .expect(401)
+        )
 
-      it('with header', () =>
+        it('with header', () =>
+          request(app.getHttpServer())
+            .delete(urlWithReminderId)
+            .set('Authorization', 'Bearer 123')
+            .send({
+              ...commonReminderReq,
+              description: 'test desc',
+              type: 0,
+              occurrence: 4,
+            })
+            .expect(401)
+        )
+      })
+
+      it('throws 404 on non-existing reminder', () => {
         request(app.getHttpServer())
+          .delete('/reminders/123')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200)
+      })
+
+      it("throws 401 if user wants to delete other user reminder", async () => {
+        await request(app.getHttpServer())
           .delete(urlWithReminderId)
-          .set('Authorization', 'Bearer 123')
-          .send({
-            ...commonReminderReq,
-            description: 'test desc',
-            type: 0,
-            occurrence: 4,
+          .set('Authorization', `Bearer ${user2token}`)
+          .expect(401)
+
+        await request(app.getHttpServer())
+          .get(urlWithReminderId)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200)
+      })
+
+      it('deletes reminder', async () => {
+        await request(app.getHttpServer())
+          .delete(urlWithReminderId)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200)
+          .then(({ body: { deletedReminderId } }) => {
+            expect(deletedReminderId).toEqual(reminderId);
           })
-          .expect(401)
-      )
+
+        await request(app.getHttpServer())
+          .get(urlWithReminderId)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(404)
+      })
     })
 
-    it('throws 404 on non-existing reminder', () => {
-      request(app.getHttpServer())
-        .delete('/reminders/123')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200)
-    })
+    describe('all reminders', () => {
+      describe('throws 401 with invalid token', () => {
+        it('without header', () =>
+          request(app.getHttpServer())
+            .delete(url)
+            .expect(401)
+        )
 
-    it("throws 401 if user wants to delete other user reminder", async () => {
-      await request(app.getHttpServer())
-        .delete(urlWithReminderId)
-        .set('Authorization', `Bearer ${user2token}`)
-        .expect(401)
+        it('with header', () =>
+          request(app.getHttpServer())
+            .delete(url)
+            .set('Authorization', 'Bearer 123')
+            .send({
+              ...commonReminderReq,
+              description: 'test desc',
+              type: 0,
+              occurrence: 4,
+            })
+            .expect(401)
+        )
+      })
 
-      await request(app.getHttpServer())
-        .get(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200)
-    })
-
-    it('deletes reminder', async () => {
-      await request(app.getHttpServer())
-        .delete(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200)
-        .then(({ body: { deletedReminderId } }) => {
-          expect(deletedReminderId).toEqual(reminderId);
-        })
-
-      await request(app.getHttpServer())
-        .get(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(404)
+      it('deletes all reminders', async () => {
+        await deleteAllReminders(app, token, url);
+      })
     })
   })
 })
