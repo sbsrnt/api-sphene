@@ -7,7 +7,7 @@ import { User } from "../user/user.entity";
 import { UserService } from "../user/user.service";
 import { checkIfUserExists, filterNumberEnumKeys } from "../utils";
 import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
-const ObjectId = require('mongodb').ObjectId;
+const ObjectId = require('mongodb').ObjectID;
 
 type ReminderReq = {
   title: string;
@@ -26,7 +26,7 @@ export class RemindersService {
   ) {}
 
   async addReminder({ email }: User, { title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminderReq }: ReminderReq): Promise<ReminderReq | UnprocessableEntityException> {
-    const { id: uid } = await checkIfUserExists(email, this.userService, true);
+    const { _id: uid } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
@@ -65,11 +65,15 @@ export class RemindersService {
   // async getAllReminders(): Promise<Reminder[]> {
   //   return [...this.reminders];
   // }
-  //
-  async getReminder({ email }: User, id: ObjectID): Promise<any> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
 
-    const reminder = await this.reminderRepository.findOne(id);
+  async getReminder({ email }: User, id: any): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    // Who knows what the fuck is wrong with testing findOne() with TypeORM.
+    const hex = /[0-9A-Fa-f]{6}/g;
+    id = (hex.test(id))? ObjectId(id) : id;
+
+    const reminder = await this.reminderRepository.findOne({ _id: id});
 
     if (!reminder) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.REMINDER.NOT_FOUND)
 
@@ -79,7 +83,7 @@ export class RemindersService {
   }
 
   async updateReminder({ email }: User, { id, title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.MISSING_TITLE)
@@ -121,22 +125,28 @@ export class RemindersService {
       );
       return updatedReminder
     } catch(e) {
-      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UPDATE_FAIL);
+      throw new UnauthorizedException(NETWORK_RESPONSE.ERRORS.REMINDER.UPDATE_FAIL);
     }
   }
 
   async deleteReminder({ email }: User, id: ObjectID): Promise<any> {
-    const { id: userId } = await checkIfUserExists(email, this.userService, true);
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    const reminder = await this.reminderRepository.findOne(id);
+
+    if (!reminder) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.REMINDER.NOT_FOUND)
+
+    if (reminder.userId.toString() !== userId.toString()) throw new UnauthorizedException(NETWORK_RESPONSE.ERRORS.GENERAL.UNAUTHORIZED)
 
     try {
       await this.reminderRepository.deleteOne({
         $and: [
-          { _id: ObjectId(id) },
-          { userId }
+          { _id: ObjectId(id),
+            userId
+          }
         ]
       });
-
-      return await id
+      return { deletedReminderId: id }
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_FAIL);
     }
