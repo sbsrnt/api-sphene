@@ -153,86 +153,126 @@ describe('RemindersController (e2e)', () => {
       )
     })
 
-    it('creates reminder without description', () =>
-      request(app.getHttpServer())
-        .post(url)
-        .set('Authorization', `Bearer ${token}`)
-        .send(commonReminderReq)
-        .expect(201)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject(commonExpectedReminderRes)
-        })
-    )
-
-    it('creates reminder with all possible data', () =>
-      request(app.getHttpServer())
-        .post(url)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          description: 'test desc',
-          type: 2,
-          occurrence: 4,
-        })
-        .expect(201)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonExpectedReminderRes,
-            occurrence: 4
-          })
-        })
-    )
-
-    describe('creates reminder for type', () => {
-      it('payment', () =>
+    describe('throws 422', () => {
+      it('on missing title', () =>
         request(app.getHttpServer())
           .post(url)
           .set('Authorization', `Bearer ${token}`)
           .send({
-            ...commonReminderReq,
-            type: 0,
+            remindAt: new Date()
           })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              type: 0
+          .expect(422)
+      )
+
+      it('on missing remindAt', () =>
+        request(app.getHttpServer())
+          .post(url)
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            title: 'test title'
+          })
+          .expect(422)
+      )
+    })
+
+    describe("doesn't create reminder when", () => {
+      describe("type:", () => {
+        it("is not supported", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: -1,
             })
-          })
-      )
+            .expect(422)
+        )
 
-      it('birthday', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 1,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              type: 1
+
+        it(">number< is string", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: '1',
             })
-          })
-      )
+            .expect(422)
+        )
 
-      it('event (in req)', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 2,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject(commonExpectedReminderRes)
-          })
-      )
+        it("is string", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 'birthday',
+            })
+            .expect(422)
+        )
 
-      it('events (not in req) (default)', () =>
+        it("not supported reminder type is string", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 'test type',
+            })
+            .expect(422)
+        )
+      })
+
+      describe("occurrence:", () => {
+        it("reminder occurrence is not supported", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: -1,
+            })
+            .expect(422)
+        )
+
+
+        it(">number< is string", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: '1',
+            })
+            .expect(422)
+        )
+
+        it("is string", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 'daily',
+            })
+            .expect(422)
+        )
+
+        it("not supported reminder occurrence is string", () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 'test type',
+            })
+            .expect(422)
+        )
+      })
+    })
+
+    describe('creates reminder', () => {
+      it('without description', () =>
         request(app.getHttpServer())
           .post(url)
           .set('Authorization', `Bearer ${token}`)
@@ -242,129 +282,15 @@ describe('RemindersController (e2e)', () => {
             expect(reminder).toMatchObject(commonExpectedReminderRes)
           })
       )
-    })
 
-    describe("doesn't create reminder when reminder type", () => {
-      it("reminder type is not supported", () =>
+      it('with all possible data', () =>
         request(app.getHttpServer())
           .post(url)
           .set('Authorization', `Bearer ${token}`)
           .send({
             ...commonReminderReq,
-            type: -1,
-          })
-          .expect(422)
-      )
-
-
-      it(">number< is string", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: '1',
-          })
-          .expect(422)
-      )
-
-      it("is string", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 'birthday',
-          })
-          .expect(422)
-      )
-
-      it("not supported reminder type is string", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 'test type',
-          })
-          .expect(422)
-      )
-    })
-
-    describe('creates reminder for occurrence', () => {
-      it('daily', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 0,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              occurrence: 0
-            })
-          })
-      )
-
-      it('every_other_day', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 1,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              occurrence: 1
-            })
-          })
-      )
-
-      it('weekly', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 2,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              occurrence: 2
-            })
-          })
-      )
-
-      it('bi_weekly', () => request(app.getHttpServer())
-        .post(url)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          occurrence: 3,
-        })
-        .expect(201)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonExpectedReminderRes,
-            occurrence: 3
-          })
-        })
-      )
-
-      it('monthly', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
+            description: 'test desc',
+            type: 2,
             occurrence: 4,
           })
           .expect(201)
@@ -376,135 +302,215 @@ describe('RemindersController (e2e)', () => {
           })
       )
 
-      it('quarterly', () =>
-        request(app.getHttpServer())
+      describe('with type:', () => {
+        it('payment', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 0,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                type: 0
+              })
+            })
+        )
+
+        it('birthday', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 1,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                type: 1
+              })
+            })
+        )
+
+        it('event (in req)', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 2,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonExpectedReminderRes)
+            })
+        )
+
+        it('events (not in req) (default)', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send(commonReminderReq)
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonExpectedReminderRes)
+            })
+        )
+      })
+
+      describe('with occurrence:', () => {
+        it('daily', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 0,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 0
+              })
+            })
+        )
+
+        it('every_other_day', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 1,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 1
+              })
+            })
+        )
+
+        it('weekly', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 2,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 2
+              })
+            })
+        )
+
+        it('bi_weekly', () => request(app.getHttpServer())
           .post(url)
           .set('Authorization', `Bearer ${token}`)
           .send({
             ...commonReminderReq,
-            occurrence: 5,
+            occurrence: 3,
           })
           .expect(201)
           .then(({ body: reminder }) => {
             expect(reminder).toMatchObject({
               ...commonExpectedReminderRes,
-              occurrence: 5
+              occurrence: 3
             })
           })
-      )
+        )
 
-      it('half_yearly', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 6,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              occurrence: 6
+        it('monthly', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 4,
             })
-          })
-      )
-
-      it('yearly (in req)', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 0,
-          })
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonExpectedReminderRes,
-              occurrence: 0
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 4
+              })
             })
-          })
-      )
+        )
 
-      it('yearly (not in req) (default)', () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send(commonReminderReq)
-          .expect(201)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject(commonExpectedReminderRes)
-          })
-      )
+        it('quarterly', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 5,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 5
+              })
+            })
+        )
+
+        it('half_yearly', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 6,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 6
+              })
+            })
+        )
+
+        it('yearly (in req)', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 0,
+            })
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonExpectedReminderRes,
+                occurrence: 0
+              })
+            })
+        )
+
+        it('yearly (not in req) (default)', () =>
+          request(app.getHttpServer())
+            .post(url)
+            .set('Authorization', `Bearer ${token}`)
+            .send(commonReminderReq)
+            .expect(201)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonExpectedReminderRes)
+            })
+        )
+      })
     })
-
-    describe("doesn't create reminder when reminder occurrence", () => {
-      it("reminder occurrence is not supported", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: -1,
-          })
-          .expect(422)
-      )
-
-
-      it(">number< is string", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: '1',
-          })
-          .expect(422)
-      )
-
-      it("is string", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 'daily',
-          })
-          .expect(422)
-      )
-
-      it("not supported reminder occurrence is string", () =>
-        request(app.getHttpServer())
-          .post(url)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 'test type',
-          })
-          .expect(422)
-      )
-    })
-
-    it('throws 422 on missing title', () =>
-      request(app.getHttpServer())
-        .post(url)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          remindAt: new Date()
-        })
-        .expect(422)
-    )
-
-    it('throws 422 on missing remindAt', () =>
-      request(app.getHttpServer())
-        .post(url)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'test title'
-        })
-        .expect(422)
-    )
   })
 
   describe('/PUT', () => {
@@ -535,223 +541,408 @@ describe('RemindersController (e2e)', () => {
       )
     })
 
-    it('updates reminder without description', () =>
-      request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          title: 'foo'
-        })
-        .expect(200)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonPutExpectedReminderRes,
+    describe('throws 422', () => {
+      it('on missing title', () =>
+        request(app.getHttpServer())
+          .put(urlWithReminderId)
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            remindAt: new Date()
+          })
+          .expect(422)
+      )
+
+      it('on missing remindAt', () =>
+        request(app.getHttpServer())
+          .put(urlWithReminderId)
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            title: 'test title'
+          })
+          .expect(422)
+      )
+
+      it('on non-existing reminder', () =>
+        request(app.getHttpServer())
+          .put('/reminders/123')
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            title: 'test title'
+          })
+          .expect(422)
+      )
+    })
+
+    describe('updates reminder', () => {
+      it('without description', () =>
+        request(app.getHttpServer())
+          .put(urlWithReminderId)
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            ...commonReminderReq,
             title: 'foo'
           })
-        })
-    )
-
-    it('updates reminder with all possible data', () => {
-      const newRemindAt = new Date();
-      request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          description: 'test desc',
-          type: 2,
-          occurrence: 4,
-          remindAt: newRemindAt
-        })
-        .expect(200)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonPutExpectedReminderRes,
-            occurrence: 4,
-            remindAt: newRemindAt.toISOString()
-          })
-        })
-    })
-
-    describe('updates reminder for type', () => {
-      it('payment', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 0,
-          })
           .expect(200)
           .then(({ body: reminder }) => {
             expect(reminder).toMatchObject({
               ...commonPutExpectedReminderRes,
-              type: 0
+              title: 'foo'
             })
           })
       )
 
-      it('birthday', () =>
+      it('with all possible data', () => {
+        const newRemindAt = new Date();
         request(app.getHttpServer())
           .put(urlWithReminderId)
           .set('Authorization', `Bearer ${token}`)
           .send({
             ...commonReminderReq,
-            type: 1,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              type: 1
-            })
-          })
-      )
-
-      it('event (in req)', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
+            description: 'test desc',
             type: 2,
+            occurrence: 4,
+            remindAt: newRemindAt
           })
           .expect(200)
           .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject(commonPutExpectedReminderRes)
+            expect(reminder).toMatchObject({
+              ...commonPutExpectedReminderRes,
+              occurrence: 4,
+              remindAt: newRemindAt.toISOString()
+            })
           })
-      )
+      })
 
-      it('events (not in req) (default)', () =>
-        request(app.getHttpServer())
+      describe('with type:', () => {
+        it('payment', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 0,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                type: 0
+              })
+            })
+        )
+
+        it('birthday', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 1,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                type: 1
+              })
+            })
+        )
+
+        it('event (in req)', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 2,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonPutExpectedReminderRes)
+            })
+        )
+
+        it('events (not in req) (default)', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send(commonReminderReq)
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonPutExpectedReminderRes)
+            })
+        )
+      })
+
+      describe('with occurrence:', () => {
+        it('daily', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 0,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 0
+              })
+            })
+        )
+
+        it('every_other_day', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 1,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 1
+              })
+            })
+        )
+
+        it('weekly', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 2,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 2
+              })
+            })
+        )
+
+        it('bi_weekly', () => request(app.getHttpServer())
           .put(urlWithReminderId)
           .set('Authorization', `Bearer ${token}`)
+          .send({
+            ...commonReminderReq,
+            occurrence: 3,
+          })
+          .expect(200)
+          .then(({ body: reminder }) => {
+            expect(reminder).toMatchObject({
+              ...commonPutExpectedReminderRes,
+              occurrence: 3
+            })
+          })
+        )
+
+        it('monthly', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 4,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 4
+              })
+            })
+        )
+
+        it('quarterly', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 5,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 5
+              })
+            })
+        )
+
+        it('half_yearly', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 6,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 6
+              })
+            })
+        )
+
+        it('yearly (in req)', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 0,
+            })
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject({
+                ...commonPutExpectedReminderRes,
+                occurrence: 0
+              })
+            })
+        )
+
+        it('yearly (not in req) (default)', () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send(commonReminderReq)
+            .expect(200)
+            .then(({ body: reminder }) => {
+              expect(reminder).toMatchObject(commonPutExpectedReminderRes)
+            })
+        )
+      })
+    })
+
+    describe("doesn't update reminder when", () => {
+      describe("type:", () => {
+        it("reminder type is not supported", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: -1,
+            })
+            .expect(422)
+        )
+
+
+        it(">number< is string", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: '1',
+            })
+            .expect(422)
+        )
+
+        it("is string", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 'birthday',
+            })
+            .expect(422)
+        )
+
+        it("not supported reminder type is string", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              type: 'test type',
+            })
+            .expect(422)
+        )
+      })
+
+      describe("occurrence:", () => {
+        it("reminder occurrence is not supported", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: -1,
+            })
+            .expect(422)
+        )
+
+
+        it(">number< is string", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: '1',
+            })
+            .expect(422)
+        )
+
+        it("is string", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 'daily',
+            })
+            .expect(422)
+        )
+
+        it("not supported reminder occurrence is string", () =>
+          request(app.getHttpServer())
+            .put(urlWithReminderId)
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              ...commonReminderReq,
+              occurrence: 'test type',
+            })
+            .expect(422)
+        )
+      })
+
+      it('tokens mismatch', async () => {
+        await request(app.getHttpServer())
+          .post('/reminders')
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            ...commonReminderReq,
+            description: 'test desc',
+            type: 2,
+            occurrence: 4,
+          })
+          .expect(201)
+          .then(({ body: reminder }) => {
+            expect(reminder).toMatchObject({
+              ...commonExpectedReminderRes,
+              occurrence: 4
+            })
+          })
+
+        await request(app.getHttpServer())
+          .put(urlWithReminderId)
+          .set('Authorization', `Bearer ${user2token}`)
           .send(commonReminderReq)
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject(commonPutExpectedReminderRes)
-          })
-      )
-    })
+          .expect(401)
 
-    describe("doesn't update reminder when reminder type", () => {
-      it("reminder type is not supported", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: -1,
-          })
-          .expect(422)
-      )
-
-
-      it(">number< is string", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: '1',
-          })
-          .expect(422)
-      )
-
-      it("is string", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 'birthday',
-          })
-          .expect(422)
-      )
-
-      it("not supported reminder type is string", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            type: 'test type',
-          })
-          .expect(422)
-      )
-    })
-
-    describe('updates reminder for occurrence', () => {
-      it('daily', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 0,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              occurrence: 0
-            })
-          })
-      )
-
-      it('every_other_day', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 1,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              occurrence: 1
-            })
-          })
-      )
-
-      it('weekly', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 2,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              occurrence: 2
-            })
-          })
-      )
-
-      it('bi_weekly', () => request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          occurrence: 3,
-        })
-        .expect(200)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonPutExpectedReminderRes,
-            occurrence: 3
-          })
-        })
-      )
-
-      it('monthly', () =>
-        request(app.getHttpServer())
+        await request(app.getHttpServer())
           .put(urlWithReminderId)
           .set('Authorization', `Bearer ${token}`)
           .send({
@@ -765,186 +956,7 @@ describe('RemindersController (e2e)', () => {
               occurrence: 4
             })
           })
-      )
-
-      it('quarterly', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 5,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              occurrence: 5
-            })
-          })
-      )
-
-      it('half_yearly', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 6,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              occurrence: 6
-            })
-          })
-      )
-
-      it('yearly (in req)', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 0,
-          })
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject({
-              ...commonPutExpectedReminderRes,
-              occurrence: 0
-            })
-          })
-      )
-
-      it('yearly (not in req) (default)', () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send(commonReminderReq)
-          .expect(200)
-          .then(({ body: reminder }) => {
-            expect(reminder).toMatchObject(commonPutExpectedReminderRes)
-          })
-      )
-    })
-
-    describe("doesn't update reminder when reminder occurrence", () => {
-      it("reminder occurrence is not supported", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: -1,
-          })
-          .expect(422)
-      )
-
-
-      it(">number< is string", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: '1',
-          })
-          .expect(422)
-      )
-
-      it("is string", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 'daily',
-          })
-          .expect(422)
-      )
-
-      it("not supported reminder occurrence is string", () =>
-        request(app.getHttpServer())
-          .put(urlWithReminderId)
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            ...commonReminderReq,
-            occurrence: 'test type',
-          })
-          .expect(422)
-      )
-    })
-
-    it('throws 422 on missing title', () =>
-      request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          remindAt: new Date()
-        })
-        .expect(422)
-    )
-
-    it('throws 422 on missing remindAt', () =>
-      request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'test title'
-        })
-        .expect(422)
-    )
-
-    it('throws 422 on non-existing reminder', () =>
-      request(app.getHttpServer())
-        .put('/reminders/123')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'test title'
-        })
-        .expect(422)
-    )
-
-    it('creates new reminder under other user id if tokens mismatch during reminder update', async () => {
-      await request(app.getHttpServer())
-        .post('/reminders')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          description: 'test desc',
-          type: 2,
-          occurrence: 4,
-        })
-        .expect(201)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonExpectedReminderRes,
-            occurrence: 4
-          })
-        })
-
-      await request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${user2token}`)
-        .send(commonReminderReq)
-        .expect(401)
-
-      await request(app.getHttpServer())
-        .put(urlWithReminderId)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          ...commonReminderReq,
-          occurrence: 4,
-        })
-        .expect(200)
-        .then(({ body: reminder }) => {
-          expect(reminder).toMatchObject({
-            ...commonPutExpectedReminderRes,
-            occurrence: 4
-          })
-        })
+      })
     })
   })
 
@@ -1060,12 +1072,11 @@ describe('RemindersController (e2e)', () => {
             })
         })
       })
-
     })
   })
 
   describe('/DELETE', () => {
-    describe('single reminder', () => {
+    describe('single user reminder', () => {
       describe('throws 401 with invalid token', () => {
         it('without header', () =>
           request(app.getHttpServer())
@@ -1122,7 +1133,7 @@ describe('RemindersController (e2e)', () => {
       })
     })
 
-    describe('all reminders', () => {
+    describe('all user reminders', () => {
       describe('throws 401 with invalid token', () => {
         it('without header', () =>
           request(app.getHttpServer())
