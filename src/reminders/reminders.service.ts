@@ -74,7 +74,6 @@ export class RemindersService {
   async getReminder({ email }: User, id: any): Promise<any> {
     const { _id: userId } = await checkIfUserExists(email, this.userService, true);
 
-    // Who knows what the fuck is wrong with testing findOne() with TypeORM.
     const hex = /[0-9A-Fa-f]{6}/g;
     id = (hex.test(id))? ObjectId(id) : id;
 
@@ -134,10 +133,13 @@ export class RemindersService {
     }
   }
 
-  async deleteReminder({ email }: User, id: ObjectID): Promise<any> {
+  async deleteReminder({ email }: User, id: any): Promise<any> {
     const { _id: userId } = await checkIfUserExists(email, this.userService, true);
 
-    const reminder = await this.reminderRepository.findOne(id);
+    const hex = /[0-9A-Fa-f]{6}/g;
+    id = (hex.test(id))? ObjectId(id) : id;
+
+    const reminder = await this.reminderRepository.findOne({_id: id});
 
     if (!reminder) throw new NotFoundException(NETWORK_RESPONSE.ERRORS.REMINDER.NOT_FOUND)
 

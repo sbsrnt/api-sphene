@@ -1098,11 +1098,11 @@ describe('RemindersController (e2e)', () => {
         )
       })
 
-      it('throws 404 on non-existing reminder', () => {
-        request(app.getHttpServer())
+      it('throws 404 on non-existing reminder', async () => {
+        await request(app.getHttpServer())
           .delete('/reminders/123')
           .set('Authorization', `Bearer ${token}`)
-          .expect(200)
+          .expect(404)
       })
 
       it("throws 401 if user wants to delete other user reminder", async () => {
