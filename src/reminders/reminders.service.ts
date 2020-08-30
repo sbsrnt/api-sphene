@@ -25,7 +25,7 @@ export class RemindersService {
     private userService: UserService,
   ) {}
 
-  async addReminder({ email }: User, { title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminderReq }: ReminderReq): Promise<ReminderReq | UnprocessableEntityException> {
+  async addReminder({ email }: User, { title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminderReq }: ReminderReq): Promise<any> {
     const { _id: uid } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
@@ -50,7 +50,7 @@ export class RemindersService {
         title,
         remindAt,
         type,
-        occurrence,
+        occurrence: OccurrenceType[occurrence],
         createdAt: new Date(),
         userId: uid,
       }
