@@ -153,7 +153,7 @@ export class RemindersService {
           }
         ]
       });
-      return { deletedReminderId: id }
+      return { _id: id }
     } catch(e) {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_FAIL);
     }
