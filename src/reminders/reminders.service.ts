@@ -119,7 +119,7 @@ export class RemindersService {
             title,
             remindAt,
             type,
-            occurrence
+            occurrence: OccurrenceType[occurrence],
           }
         },
         {
