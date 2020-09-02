@@ -1122,8 +1122,8 @@ describe('RemindersController (e2e)', () => {
           .delete(urlWithReminderId)
           .set('Authorization', `Bearer ${token}`)
           .expect(200)
-          .then(({ body: { deletedReminderId } }) => {
-            expect(deletedReminderId).toEqual(reminderId);
+          .then(({ body: { _id } }) => {
+            expect(_id).toEqual(reminderId);
           })
 
         await request(app.getHttpServer())
