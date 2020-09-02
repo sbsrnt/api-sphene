@@ -48,7 +48,7 @@ describe('RemindersController (e2e)', () => {
   const commonPutExpectedReminderRes = {
     title: 'test title',
     type: 2, // event
-    occurrence: 7, // yearly
+    occurrence: 'yearly',
     remindAt: expect.any(String),
     _id: expect.any(String),
   }
@@ -607,7 +607,7 @@ describe('RemindersController (e2e)', () => {
           .then(({ body: reminder }) => {
             expect(reminder).toMatchObject({
               ...commonPutExpectedReminderRes,
-              occurrence: 4,
+              occurrence: 'monthly',
               remindAt: newRemindAt.toISOString()
             })
           })
@@ -687,7 +687,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 0
+                occurrence: 'daily'
               })
             })
         )
@@ -704,7 +704,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 1
+                occurrence: 'every_other_day'
               })
             })
         )
@@ -721,7 +721,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 2
+                occurrence: 'weekly'
               })
             })
         )
@@ -737,7 +737,7 @@ describe('RemindersController (e2e)', () => {
           .then(({ body: reminder }) => {
             expect(reminder).toMatchObject({
               ...commonPutExpectedReminderRes,
-              occurrence: 3
+              occurrence: 'bi_weekly'
             })
           })
         )
@@ -754,7 +754,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 4
+                occurrence: 'monthly'
               })
             })
         )
@@ -771,7 +771,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 5
+                occurrence: 'quarterly'
               })
             })
         )
@@ -788,7 +788,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 6
+                occurrence: 'half_yearly'
               })
             })
         )
@@ -799,13 +799,13 @@ describe('RemindersController (e2e)', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
               ...commonReminderReq,
-              occurrence: 0,
+              occurrence: 7,
             })
             .expect(200)
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                occurrence: 0
+                occurrence: 'yearly'
               })
             })
         )
@@ -953,7 +953,7 @@ describe('RemindersController (e2e)', () => {
           .then(({ body: reminder }) => {
             expect(reminder).toMatchObject({
               ...commonPutExpectedReminderRes,
-              occurrence: 4
+              occurrence: 'monthly'
             })
           })
       })
