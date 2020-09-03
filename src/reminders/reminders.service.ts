@@ -118,7 +118,7 @@ export class RemindersService {
             ...reminder,
             title,
             remindAt,
-            type,
+            type: ReminderType[type],
             occurrence: OccurrenceType[occurrence],
           }
         },

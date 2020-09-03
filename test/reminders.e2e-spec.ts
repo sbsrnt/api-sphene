@@ -47,7 +47,7 @@ describe('RemindersController (e2e)', () => {
 
   const commonPutExpectedReminderRes = {
     title: 'test title',
-    type: 2, // event
+    type: 'event',
     occurrence: 'yearly',
     remindAt: expect.any(String),
     _id: expect.any(String),
@@ -626,7 +626,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                type: 0
+                type: 'payment'
               })
             })
         )
@@ -643,7 +643,7 @@ describe('RemindersController (e2e)', () => {
             .then(({ body: reminder }) => {
               expect(reminder).toMatchObject({
                 ...commonPutExpectedReminderRes,
-                type: 1
+                type: 'birthday'
               })
             })
         )
