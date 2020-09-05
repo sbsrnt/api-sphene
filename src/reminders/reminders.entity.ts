@@ -46,7 +46,7 @@ export class Reminder {
   @Column()
   occurrence: OccurrenceType | string | null;
 
-  @CreateDateColumn()
+  @Column()
   remindAt: Date;
 
   @CreateDateColumn()

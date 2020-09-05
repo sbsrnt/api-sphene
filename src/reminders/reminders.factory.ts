@@ -12,7 +12,7 @@ define(Reminder,  (faker: typeof Faker, userId: string) => {
   const randomType = ReminderType[random(filterEnumKeys(ReminderType).length - 1)];
   const randomOccurrence = random(8) === 1 ? null : OccurrenceType[random(filterEnumKeys(OccurrenceType).length - 1)];
 
-  const title = faker.random.words(4);
+  const title = faker.random.words(3);
   const description = random(4) === 1 ? null : faker.random.words(6);
   const type = randomType;
   const occurrence = randomOccurrence;
