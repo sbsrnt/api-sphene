@@ -14,11 +14,15 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthUser } from "../user/user.decorator";
 import { User } from "../user/user.entity";
 import { OccurrenceType, ReminderType } from "./reminders.entity";
+// import { RemindersGateway } from "./reminders.gateway";
 import { RemindersService } from './reminders.service';
 
 @Controller('reminders')
 export class RemindersController {
-  constructor(private readonly remindersService: RemindersService) {}
+  constructor(
+    private readonly remindersService: RemindersService,
+    // private readonly remindersGateway: RemindersGateway
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -48,6 +52,14 @@ export class RemindersController {
     return this.remindersService.getAllReminders(user);
   }
 
+  @Get('/upcoming')
+  @UseGuards(JwtAuthGuard)
+  getUpcomingReminders(
+    @AuthUser() user: User
+  ) {
+    return this.remindersService.getUpcomingReminders(user);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   getReminder(
@@ -59,7 +71,7 @@ export class RemindersController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  updateReminder(
+  async updateReminder(
     @AuthUser() user: User,
     @Param('id') id: ObjectID,
     @Body('title') title: string,
@@ -76,7 +88,7 @@ export class RemindersController {
       remindAt,
       occurrence
     }
-    return this.remindersService.updateReminder(user, reminder);
+    return await this.remindersService.updateReminder(user, reminder);
   }
 
   @Delete(':id')

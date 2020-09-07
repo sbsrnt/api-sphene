@@ -6,12 +6,13 @@ import {
   UnprocessableEntityException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { add } from 'date-fns';
 import { MongoRepository, ObjectID } from "typeorm";
 
 import { NETWORK_RESPONSE } from "../errors";
 import { User } from "../user/user.entity";
 import { UserService } from "../user/user.service";
-import { checkIfUserExists, filterNumberEnumKeys } from "../utils";
+import { checkIfUserExists, filterNumberEnumKeys, updateRemindAtByOccurrence } from "../utils";
 import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
 const ObjectId = require('mongodb').ObjectID;
 
@@ -75,7 +76,7 @@ export class RemindersService {
     }
   }
 
-  async getAllReminders({ email }: User): Promise<any> {
+  async getAllReminders({ email }: User | { email: string }): Promise<any> {
     const { _id: userId } = await checkIfUserExists(email, this.userService, true);
     try {
       this.logger.log(`Got all reminders for user ${email}.`)
@@ -108,7 +109,16 @@ export class RemindersService {
     return reminder
   }
 
-  async updateReminder({ email }: User, { id, title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminder }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
+  async updateReminder(
+    { email }: User,
+    {
+      id,
+      title,
+      remindAt,
+      type = ReminderType.event,
+      occurrence = OccurrenceType.yearly,
+      ...reminder
+    }: ReminderReq & { id: ObjectID}): Promise<ReminderReq | UnprocessableEntityException> {
     const { _id: userId } = await checkIfUserExists(email, this.userService, true);
 
     if(!title) {
@@ -209,4 +219,62 @@ export class RemindersService {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.DELETE_ALL_FAIL)
     }
   }
+
+  async getUpcomingReminders({ email }: User | { email: string }): Promise<any> {
+    const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+
+    const now = new Date();
+    const nextHour = add(now, {hours: 1}).toISOString()
+    const upcomingReminders = await this.reminderRepository.find({
+      where: {
+        $and: [
+          { userId },
+          {
+            remindAt: {
+              $gte: now.toISOString(),
+              $lte: nextHour,
+            },
+          },
+        ],
+      },
+    });
+
+    if (!upcomingReminders || upcomingReminders.length === 0) {
+      this.logger.log(`No upcoming reminders for ${email}`);
+    }
+
+    upcomingReminders.map(async reminder => {
+      const remindAt = await updateRemindAtByOccurrence(reminder.remindAt, reminder.occurrence);
+
+      await this.reminderRepository.findOneAndUpdate(
+        { _id: reminder._id },
+        {
+          $set: {
+            ...reminder,
+            remindAt,
+          }
+        }
+      )
+      await this.logger.log(`Updated ${reminder._id}. Next occurrence: ${remindAt}`)
+    })
+
+    this.logger.log(`Got ${upcomingReminders.length} upcoming reminder(s) for user ${email}`)
+
+    return upcomingReminders;
+  }
+
+  // For WebSockets. See reminders.gateway.ts
+  // async updateReminderNextOccurrence({ email }: any, id: ObjectID): Promise<any> {
+  //   const { _id: userId } = await checkIfUserExists(email, this.userService, true);
+  //
+  //   const reminder = await this.reminderRepository.findOne({
+  //     where: {
+  //       $and: [
+  //         { _id: ObjectId(id) },
+  //         { userId }
+  //       ]
+  //     }
+  //   })
+  //   // get occurrence and update remindAt based on it; like new Date(remindAt) + 1 for daily or + 7 for weekly etc
+  // }
 }
