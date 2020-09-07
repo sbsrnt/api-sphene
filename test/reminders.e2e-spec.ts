@@ -18,6 +18,7 @@ import { AppModule } from "../src/app.module";
 import { LocalStrategy } from "../src/auth/local.strategy";
 import { JwtStrategy } from "../src/auth/jwt.strategy";
 import { RemindersService } from "../src/reminders/reminders.service";
+import { addMinutes, addYears } from "date-fns";
 
 describe('RemindersController (e2e)', () => {
   let app: INestApplication;
@@ -1070,6 +1071,225 @@ describe('RemindersController (e2e)', () => {
               // 1 created in beforeAll(), 2 created above
               expect(body.length).toEqual(2);
             })
+        })
+      })
+    })
+
+    describe('upcoming reminders', () => {
+      describe('throws 401 with invalid token', () => {
+        it('without header', () =>
+          request(app.getHttpServer())
+            .get('/reminders/upcoming')
+            .expect(401)
+        )
+
+        it('with header', () =>
+          request(app.getHttpServer())
+            .get('/reminders/upcoming')
+            .set('Authorization', 'Bearer 123')
+            .send({
+              ...commonReminderReq,
+              description: 'test desc',
+              type: 0,
+              occurrence: 4,
+            })
+            .expect(401)
+        )
+      })
+
+      describe('returns upcoming reminders in the next hour: ', () => {
+        let reminder;
+        const remindAt = addMinutes(new Date(), 10);
+        const remindAt2 = addMinutes(new Date(), 50);
+        const remindAtHourThreshold = addMinutes(new Date(), 60);
+        const remindAtAfterHourThreshold = addMinutes(new Date(), 61);
+
+        describe('0 when', () => {
+          it('none reminder is present', async () => {
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt: remindAtAfterHourThreshold,
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .get('/reminders/upcoming')
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: upcomingReminders }) => {
+                expect(upcomingReminders).toHaveLength(0);
+              })
+          })
+
+          it('reminder is created literally now', async () => {
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .get('/reminders/upcoming')
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: upcomingReminders }) => {
+                expect(upcomingReminders).toHaveLength(0);
+              })
+          })
+        })
+
+        describe('1 when', () => {
+          it('reminder is added between now and upcoming  hour', async () => {
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt,
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .get('/reminders/upcoming')
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: upcomingReminders }) => {
+                reminder = upcomingReminders[0]._id;
+                expect(upcomingReminders).toHaveLength(1);
+                expect(upcomingReminders[0]).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2
+                })
+              })
+
+            await request(app.getHttpServer())
+              .get(`/reminders/${reminder}`)
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: updatedReminder }) => {
+                expect(updatedReminder).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2,
+                  remindAt: addYears(remindAt, 1).toISOString() // yearly by default
+                })
+              })
+          })
+
+          it('reminder is added on the edge of upcoming hour', async () => {
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt: remindAtHourThreshold,
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .get('/reminders/upcoming')
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: upcomingReminders }) => {
+                expect(upcomingReminders).toHaveLength(1);
+                expect(upcomingReminders[0]).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2
+                })
+              })
+          })
+        })
+
+        describe('multiple when', () => {
+          it('two reminders are added between now and upcoming hour', async () => {
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt,
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt: remindAt2,
+                title: "foo"
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .get('/reminders/upcoming')
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: upcomingReminders }) => {
+                expect(upcomingReminders).toHaveLength(2);
+                expect(upcomingReminders[0]).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2
+                })
+                expect(upcomingReminders[1]).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2,
+                  title: "foo"
+                })
+              })
+          })
+
+          it('three reminders are added but only two are returned due to 3rd being added after next hour', async () => {
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt,
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt: remindAt2,
+                title: "foo"
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .post(url)
+              .set('Authorization', `Bearer ${token}`)
+              .send({
+                ...commonReminderReq,
+                remindAt: remindAtAfterHourThreshold,
+                title: "foo"
+              })
+              .expect(201)
+
+            await request(app.getHttpServer())
+              .get('/reminders/upcoming')
+              .set('Authorization', `Bearer ${token}`)
+              .expect(200)
+              .then(({ body: upcomingReminders }) => {
+                expect(upcomingReminders).toHaveLength(2);
+                expect(upcomingReminders[0]).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2
+                })
+                expect(upcomingReminders[1]).toMatchObject({
+                  ...commonPutExpectedReminderRes,
+                  type: 2,
+                  title: "foo"
+                })
+              })
+          })
         })
       })
     })

@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { addDays, addMonths } from "date-fns";
 import { isNaN } from "lodash";
 
 import { NETWORK_RESPONSE } from './errors';
@@ -34,3 +35,34 @@ export const validateEmailFormat = (e: string): boolean => {
 
 export const filterEnumKeys: any = e => Object.keys(e).filter(k => isNaN(Number(k)))
 export const filterNumberEnumKeys: any = e => Object.keys(e).filter(k => !isNaN(Number(k))).map(k => Number(k))
+
+
+type DaysDifferenceProps = {
+  date: Date;
+  days?: number;
+  months?: number;
+}
+
+const daysDifference = ({ date, days, months }: DaysDifferenceProps) => {
+  const d = new Date(date);
+  if(days) {
+    return addDays(d, days).toISOString();
+  }
+
+  if(months) {
+    return addMonths(d, months).toISOString();
+  }
+}
+
+export const updateRemindAtByOccurrence = (remindAt, occurrence) => {
+  switch(occurrence) {
+    case 'daily': return daysDifference({date: remindAt, days: 1});
+    case 'every_other_day': return daysDifference({date: remindAt, days: 2});
+    case 'weekly': return daysDifference({date: remindAt, days: 7});
+    case 'bi_weekly': return daysDifference({date: remindAt, days: 14});
+    case 'monthly': return daysDifference({date: remindAt, months: 1});
+    case 'quarterly': return daysDifference({date: remindAt, months: 3});
+    case 'half_yearly': return daysDifference({date: remindAt, months: 6});
+    default: return daysDifference({date: remindAt, months: 12});
+  }
+}

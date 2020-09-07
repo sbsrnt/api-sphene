@@ -5,13 +5,15 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+// import { IoAdapter } from "@nestjs/platform-socket.io";
+
 import { AppModule } from './app.module';
 
 declare const module: any;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  // app.useWebSocketAdapter(new IoAdapter(app));
   // await app.use(helmet());
   await app.enableCors({
     origin: 'http://localhost:3000'
