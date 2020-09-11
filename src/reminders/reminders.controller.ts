@@ -52,7 +52,7 @@ export class RemindersController {
     return this.remindersService.getAllReminders(user);
   }
 
-  @Get('/upcoming')
+  @Get('upcoming')
   @UseGuards(JwtAuthGuard)
   getUpcomingReminders(
     @AuthUser() user: User

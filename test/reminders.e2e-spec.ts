@@ -18,7 +18,7 @@ import { AppModule } from "../src/app.module";
 import { LocalStrategy } from "../src/auth/local.strategy";
 import { JwtStrategy } from "../src/auth/jwt.strategy";
 import { RemindersService } from "../src/reminders/reminders.service";
-import { addMinutes, addYears } from "date-fns";
+import { addDays, addMinutes, addYears } from "date-fns";
 
 describe('RemindersController (e2e)', () => {
   let app: INestApplication;
@@ -33,7 +33,7 @@ describe('RemindersController (e2e)', () => {
 
   const commonReminderReq = {
     title: 'test title',
-    remindAt: new Date()
+    remindAt: addDays(new Date(), 1)
   }
 
   const commonExpectedReminderRes = {
@@ -1378,6 +1378,12 @@ describe('RemindersController (e2e)', () => {
       it('deletes all reminders', async () => {
         await deleteAllReminders(app, token, url);
       })
+    })
+  })
+
+  describe.skip('CRON', () => {
+    describe('Overdue Reminders', () => {
+
     })
   })
 })
