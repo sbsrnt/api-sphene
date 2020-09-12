@@ -35,7 +35,7 @@ export class RemindersService {
 
   private readonly logger = new Logger(RemindersService.name);
 
-  @Cron(CronExpression.EVERY_5_SECONDS, {
+  @Cron(CronExpression.EVERY_DAY_AT_3AM, {
     name: 'OverdueReminders'
   })
   async handleCron() {
@@ -46,7 +46,7 @@ export class RemindersService {
         }
       },
     });
-    if(overdueReminders.length === 0) {
+    if (overdueReminders.length === 0) {
       this.logger.debug(`[OverdueReminders] No overdue reminders.`)
       return;
     }
