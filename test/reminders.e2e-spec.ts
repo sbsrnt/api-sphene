@@ -3,6 +3,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { TypeOrmModule } from "@nestjs/typeorm";
+const sinon = require('sinon')
 
 import * as request from 'supertest';
 
@@ -18,7 +19,8 @@ import { AppModule } from "../src/app.module";
 import { LocalStrategy } from "../src/auth/local.strategy";
 import { JwtStrategy } from "../src/auth/jwt.strategy";
 import { RemindersService } from "../src/reminders/reminders.service";
-import { addMinutes, addYears } from "date-fns";
+import { addDays, addMinutes, addYears } from "date-fns";
+import { ScheduleModule } from "@nestjs/schedule";
 
 describe('RemindersController (e2e)', () => {
   let app: INestApplication;
@@ -33,7 +35,7 @@ describe('RemindersController (e2e)', () => {
 
   const commonReminderReq = {
     title: 'test title',
-    remindAt: new Date()
+    remindAt: addDays(new Date(), 1)
   }
 
   const commonExpectedReminderRes = {
@@ -67,6 +69,7 @@ describe('RemindersController (e2e)', () => {
           signOptions: { expiresIn: '600s' },
         }),
         TypeOrmModule.forFeature([User, EmailVerification, ForgottenPassword]),
+        ScheduleModule.forRoot(),
         AppModule
       ],
       providers: [AuthService, UserService, MailersService, LocalStrategy, JwtStrategy]
@@ -1377,6 +1380,60 @@ describe('RemindersController (e2e)', () => {
 
       it('deletes all reminders', async () => {
         await deleteAllReminders(app, token, url);
+      })
+    })
+  })
+
+  describe.skip('CRON', () => {
+    let clock: sinon.SinonFakeTimers;
+
+    describe('Overdue Reminders', () => {
+      it('executes at 3am updating reminders based on their occurrence', async () => {
+        let reminder;
+                                                                                                        //           T        Z
+        const taskCreation = new Date(2020, 1, 10, 10),                        // 2020-02-10 10:00:00
+           overdueReminder = new Date(2020, 1, 11, 16).toISOString(),          // 2020-02-11 16:00:00
+             scheduledCron = new Date(2020, 1, 13, 3, 59, 59), // 2020-02-13 02:59:59
+                       now = new Date(2020, 1, 13, 10),                        // 2020-02-13 10:00:00
+              expectedDate = new Date(2020, 1, 13, 16).toISOString();          // 2020-02-13 16:00:00
+
+        await deleteAllReminders(app, token, url);
+
+        clock = await sinon.useFakeTimers({ now: +taskCreation })                                // 2020-02-10 10:00:00
+
+        // Create reminder
+        await request(app.getHttpServer())
+          .post(url)
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            ...commonReminderReq,
+            remindAt: overdueReminder,
+            occurrence: 0,
+          })
+          .expect(201)
+          .then(({ body: reminder }) => {
+            expect(reminder).toMatchObject(
+              {
+                ...commonExpectedReminderRes,
+                remindAt: overdueReminder,
+                occurrence: 'daily'
+              })
+          })
+
+        // Get existing reminders
+        await request(app.getHttpServer())
+          .get(url)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200)
+          .then(({ body }) => {
+            reminder = body[0];
+            expect(body.length).toEqual(1);
+          })
+
+        expect(reminder.remindAt).toEqual(overdueReminder);                // 2020-02-11 16:00:00
+        clock = await sinon.useFakeTimers({ now: +scheduledCron })  // 2020-02-13 02:59:59
+        await clock.tick(1000);                                      // 2020-02-13 03:00:00
+        expect(reminder.remindAt).toEqual(expectedDate);                  // 2020-02-11 16:00:00 | should be 2020-02-13 16:00:00
       })
     })
   })

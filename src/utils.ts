@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { addDays, addMonths } from "date-fns";
+import { addDays, addMonths, differenceInDays } from "date-fns";
 import { isNaN } from "lodash";
 
 import { NETWORK_RESPONSE } from './errors';
@@ -43,18 +43,34 @@ type DaysDifferenceProps = {
   months?: number;
 }
 
+const autoRemindAtBuilder = (remindAt: Date) => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), remindAt.getHours(), remindAt.getMinutes());
+}
+
 const daysDifference = ({ date, days, months }: DaysDifferenceProps) => {
-  const d = new Date(date);
+  const remindAt = new Date(date);
+  const now = new Date();
+
   if(days) {
-    return addDays(d, days).toISOString();
+    if(Number(remindAt) < Number(now)) {
+      const countOverdueDays = differenceInDays(Number(now), Number(remindAt));
+      if(countOverdueDays <= days) {
+        return addDays(remindAt, days).toISOString()
+      }
+
+      if(countOverdueDays > days){
+        return addDays(autoRemindAtBuilder(remindAt), days).toISOString();
+      }
+    }
   }
 
   if(months) {
-    return addMonths(d, months).toISOString();
+    return addMonths(remindAt, months).toISOString();
   }
 }
 
-export const updateRemindAtByOccurrence = (remindAt, occurrence) => {
+export const updateRemindAtByOccurrence = ({remindAt, occurrence}) => {
   switch(occurrence) {
     case 'daily': return daysDifference({date: remindAt, days: 1});
     case 'every_other_day': return daysDifference({date: remindAt, days: 2});

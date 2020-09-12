@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   UnprocessableEntityException
 } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { add } from 'date-fns';
 import { MongoRepository, ObjectID } from "typeorm";
@@ -32,7 +33,38 @@ export class RemindersService {
     private userService: UserService,
   ) {}
 
-  private logger: Logger = new Logger(RemindersService.name);
+  private readonly logger = new Logger(RemindersService.name);
+
+  @Cron(CronExpression.EVERY_DAY_AT_3AM, {
+    name: 'OverdueReminders'
+  })
+  async handleCron() {
+    const overdueReminders = await this.reminderRepository.find({
+      where: {
+        remindAt: {
+          $lte: new Date().toISOString(),
+        }
+      },
+    });
+    if (overdueReminders.length === 0) {
+      this.logger.debug(`[OverdueReminders] No overdue reminders.`)
+      return;
+    }
+    overdueReminders.map(async reminder => {
+      const remindAt = await updateRemindAtByOccurrence({remindAt: reminder.remindAt, occurrence: reminder.occurrence});
+
+      await this.reminderRepository.findOneAndUpdate(
+        { _id: reminder._id },
+        {
+          $set: {
+            ...reminder,
+            remindAt,
+          }
+        }
+      )
+      await this.logger.log(`Updated ${reminder._id}. Next occurrence: ${remindAt}`)
+    })
+  }
 
   async addReminder({ email }: User, { title, remindAt, type = ReminderType.event, occurrence = OccurrenceType.yearly, ...reminderReq }: ReminderReq): Promise<any> {
     const { _id: uid } = await checkIfUserExists(email, this.userService, true);
@@ -244,7 +276,7 @@ export class RemindersService {
     }
 
     upcomingReminders.map(async reminder => {
-      const remindAt = await updateRemindAtByOccurrence(reminder.remindAt, reminder.occurrence);
+      const remindAt = await updateRemindAtByOccurrence({remindAt: reminder.remindAt, occurrence: reminder.occurrence});
 
       await this.reminderRepository.findOneAndUpdate(
         { _id: reminder._id },
