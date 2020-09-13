@@ -24,6 +24,17 @@ export enum OccurrenceType {
   yearly
 }
 
+export type Checklist = {
+  checklist?: ChecklistItem[]
+}
+
+type ChecklistItem = {
+  id: string;
+  checked: boolean;
+  checkedTimespan: Date | null;
+  description: string;
+}
+
 @Entity('reminders')
 export class Reminder {
   @ObjectIdColumn()
@@ -56,4 +67,7 @@ export class Reminder {
     default: null
   })
   updatedAt: Date;
+
+  @Column()
+  checklist?: Checklist
 }

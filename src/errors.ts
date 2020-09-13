@@ -29,7 +29,9 @@ export const NETWORK_RESPONSE = {
         NOT_FOUND: "Couldn't find reminder. Try again later.",
         NOT_ALLOWED: "Not allowed.",
         UNSUPPORTED_TYPE: "Type is not supported.",
-        UNSUPPORTED_OCCURRENCE: "Occurrence is not supported."
+        UNSUPPORTED_OCCURRENCE: "Occurrence is not supported.",
+        CHECKLIST_NO_ITEMS: "Checklist should have at least one item",
+        CHECKLIST_TOO_MANY_ITEMS: "Checklist should have at max 3 items"
       }
     }
 }
