@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { EmailVerification, ForgottenPassword } from './mailers/mailers.entity';
 import { MailersModule } from './mailers/mailers.module';
+import { PaymentTrackers } from "./payment-trackers/payment-trackers.entity";
+import { PaymentTrackersModule } from "./payment-trackers/payment-trackers.module";
 import { Reminder } from "./reminders/reminders.entity";
 import { RemindersModule } from './reminders/reminders.module';
 import { User } from './user/user.entity';
@@ -16,13 +18,14 @@ import { UserModule } from './user/user.module';
       type: 'mongodb',
       host: process.env.BUILD_ENV === 'dev' ? process.env.DEV_DB_HOST : process.env.PROD_DB_HOST,
       database: process.env.BUILD_ENV === 'dev' ? process.env.DEV_DB_DATABASE : process.env.PROD_DB_DATABASE,
-      entities: [User, EmailVerification, ForgottenPassword, Reminder],
+      entities: [User, EmailVerification, ForgottenPassword, Reminder, PaymentTrackers],
       synchronize: true,
       keepConnectionAlive: true
     }),
     ScheduleModule.forRoot(),
     AuthModule,
     RemindersModule,
+    PaymentTrackersModule,
     MailersModule,
     UserModule
   ],
