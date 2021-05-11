@@ -41,7 +41,7 @@
     "dotenv": "^8.2.0",
     "express-rate-limit": "^5.1.3",
     "helmet": "^3.23.3",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "mongodb": "^3.5.9",
     "mongoose": "^5.9.25",
     "nodemailer": "^6.4.10",
