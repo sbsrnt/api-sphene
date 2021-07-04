@@ -13,7 +13,7 @@ export const registerTestUser = (app, user = testUser) => {
     .set('Accept', 'application/json')
 }
 
-export const deleteAllReminders = async (app, token, url) => {
+export const deleteAllEntities = async (app, token, url) => {
   await request(app.getHttpServer())
     .delete(url)
     .set('Authorization', `Bearer ${token}`)

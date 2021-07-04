@@ -32,6 +32,18 @@ export const NETWORK_RESPONSE = {
         UNSUPPORTED_OCCURRENCE: "Occurrence is not supported.",
         CHECKLIST_NO_ITEMS: "Checklist should have at least one item",
         CHECKLIST_TOO_MANY_ITEMS: "Checklist should have at max 3 items"
+      },
+      PAYMENT: {
+        MISSING_RECEIVER: 'Receiver is required.',
+        MISSING_VALUE: 'Value is required.',
+        ADD_FAIL: 'Couldn\'t add payment.',
+        GET_ALL_FAIL: "Couldn't find payments. Try again later.",
+        NOT_FOUND: "Couldn't find reminder. Try again later.",
+        UPDATE_FAIL: 'Couldn\'t update payment.',
+        DELETE_ALL_FAIL: 'Couldn\'t delete all payments. Try again later.',
+        DELETE_FAIL: 'Couldn\'t delete payment.',
+        CHECKLIST_NO_ITEMS: "Checklist should have at least one item",
+        CHECKLIST_TOO_MANY_ITEMS: "Checklist should have at max 3 items"
       }
     }
 }

@@ -8,7 +8,7 @@ const sinon = require('sinon')
 import * as request from 'supertest';
 
 import DbModule, { mongod } from "./db-test.module";
-import { deleteAllReminders, registerTestUser } from "./helpers";
+import { deleteAllEntities, registerTestUser } from "./helpers";
 
 import { EmailVerification, ForgottenPassword } from "../src/mailers/mailers.entity";
 import { UserService } from "../src/user/user.service";
@@ -110,7 +110,7 @@ describe('RemindersController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await deleteAllReminders(app, token, url);
+    await deleteAllEntities(app, token, url);
     await app.close();
     await mongod.stop();
   });
@@ -1033,7 +1033,7 @@ describe('RemindersController (e2e)', () => {
 
       describe('gets', () => {
         it('zero reminders', async () => {
-          await deleteAllReminders(app, token, url);
+          await deleteAllEntities(app, token, url);
         })
 
         it('one reminder', async () => {
@@ -1379,7 +1379,7 @@ describe('RemindersController (e2e)', () => {
       })
 
       it('deletes all reminders', async () => {
-        await deleteAllReminders(app, token, url);
+        await deleteAllEntities(app, token, url);
       })
     })
   })
@@ -1397,7 +1397,7 @@ describe('RemindersController (e2e)', () => {
                        now = new Date(2020, 1, 13, 10),                         // 2020-02-13 10:00:00
               expectedDate = new Date(2020, 1, 13, 16).toISOString();           // 2020-02-13 16:00:00
 
-        await deleteAllReminders(app, token, url);
+        await deleteAllEntities(app, token, url);
 
         clock = await sinon.useFakeTimers({ now: +taskCreation })               // 2020-02-10 10:00:00
 

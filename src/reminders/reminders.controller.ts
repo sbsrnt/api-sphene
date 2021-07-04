@@ -13,7 +13,7 @@ import { ObjectID } from "typeorm";
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthUser } from "../user/user.decorator";
 import { User } from "../user/user.entity";
-import { Checklist, OccurrenceType, ReminderType } from "./reminders.entity";
+import { OccurrenceType, ReminderType } from "./reminders.entity";
 // import { RemindersGateway } from "./reminders.gateway";
 import { RemindersService } from './reminders.service';
 
@@ -33,15 +33,13 @@ export class RemindersController {
     @Body('type') type: ReminderType,
     @Body('remindAt') remindAt: Date,
     @Body('occurrence') occurrence: OccurrenceType,
-    @Body('checklist') checklist: Checklist,
   ) {
     const reminder = {
       title,
       description,
       type,
       remindAt,
-      occurrence,
-      checklist,
+      occurrence
     }
     return this.remindersService.addReminder(user, reminder);
   }

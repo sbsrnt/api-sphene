@@ -14,7 +14,7 @@ import { NETWORK_RESPONSE } from "../errors";
 import { User } from "../user/user.entity";
 import { UserService } from "../user/user.service";
 import { checkIfUserExists, filterNumberEnumKeys, updateRemindAtByOccurrence } from "../utils";
-import { Checklist, OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
+import { OccurrenceType, Reminder, ReminderType } from "./reminders.entity";
 const ObjectId = require('mongodb').ObjectID;
 
 type ReminderReq = {
@@ -23,7 +23,6 @@ type ReminderReq = {
   type: ReminderType;
   remindAt: Date;
   occurrence: OccurrenceType
-  checklist?: Checklist
 }
 
 @Injectable()
@@ -74,7 +73,6 @@ export class RemindersService {
       remindAt,
       type = ReminderType.event,
       occurrence = OccurrenceType.yearly,
-      checklist,
       ...reminderReq
     }: ReminderReq): Promise<any> {
     const { _id: uid } = await checkIfUserExists(email, this.userService, true);
@@ -99,25 +97,7 @@ export class RemindersService {
       throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.UNSUPPORTED_OCCURRENCE)
     }
 
-    if (checklist && Object.values(checklist).length === 0) {
-      this.logger.log(`Couldn't create reminder for user ${email}: No list items.`);
-      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.CHECKLIST_NO_ITEMS);
-    }
-
-    if (checklist && Object.values(checklist).length > 3) {
-      this.logger.log(`Couldn't create reminder for user ${email}: Too many list items.`);
-      throw new UnprocessableEntityException(NETWORK_RESPONSE.ERRORS.REMINDER.CHECKLIST_TOO_MANY_ITEMS);
-    }
-
     try {
-      const preparedChecklist = Object.entries(checklist).map(({ 0: key, 1: value }) => ({
-          id: key,
-          checked: false,
-          checkedTimespan: null,
-          description: value,
-        })
-      );
-
       const reminder = {
         ...reminderReq,
         title,
@@ -125,13 +105,12 @@ export class RemindersService {
         type,
         occurrence: OccurrenceType[occurrence],
         createdAt: new Date(),
-        ...(checklist && { checklist : preparedChecklist }),
         userId: uid,
       }
+
       this.logger.log(`Reminder created.`)
-      // @ts-ignore cba fighting with this compiler.
-      // For w/e reason he sees checklist description as ChecklistItem[] when it's a string.
       const { userId, ...newReminder } = await this.reminderRepository.save(reminder)
+
       return newReminder;
     } catch (e) {
       this.logger.log(`Couldn't create reminder: ${e}.`)
